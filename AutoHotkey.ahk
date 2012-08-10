@@ -13,7 +13,6 @@ X := 0
 Y := 0
 W := A_ScreenWidth
 H := A_ScreenHeight
-; A comment to test Git diff
 
 ;--------------------------------------------------------------------------
 ; Setup the program-specific scripts.  A timer is run that checks whether
@@ -172,11 +171,11 @@ return
 GroupAdd, Consoles, ahk_class ConsoleWindowClass
 RunCycleApp("Consoles", "cmd", "ctrl")
 return
+#v::RunRestoreHideApp("GitHub","C:\Users\Ash\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\GitHub, Inc\GitHub.appref-ms")
 
 ;;; Control iTunes --------------------------------------------------------------------------
 ;;#i::RunRestoreHideApp2("iTunes","iTunes","iTunes")
-#i::RunRestoreHideApp2("Spotify","C:\Users\Ash\AppData\Roaming\Spotify\spotify.exe","Spotify")
-;Browser_Back::
+#i::RunRestoreHideApp2("ahk_class SpotifyMainWindow","C:\Users\Ash\AppData\Roaming\Spotify\spotify.exe","Spotify")
 #m::
 Send, {Media_Prev}
 ;If WinExist("ahk_class iTunes") or WinExist("ahk_class SpotifyMainWindow")
@@ -426,7 +425,7 @@ CMDret(CMD)
 RunRestoreHideApp2(title1, app, title2)
 {
 	DetectHiddenWindows, On
-	SetTitleMatchMode, 2
+	SetTitleMatchMode, 3
 	app = "%app%"
 	If WinExist(title1) or (title2 <> "" and WinExist(title2))
 	{
@@ -437,8 +436,6 @@ RunRestoreHideApp2(title1, app, title2)
 		}
 		else
 		{
-			;~ WinGetPos, X, Y
-			;~ MsgBox, %X% . ", " . %Y%
 			WinActivate
 			return "act"
 		}
