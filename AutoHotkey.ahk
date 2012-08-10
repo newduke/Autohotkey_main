@@ -13,6 +13,7 @@ X := 0
 Y := 0
 W := A_ScreenWidth
 H := A_ScreenHeight
+; A comment to test Git diff
 
 ;--------------------------------------------------------------------------
 ; Setup the program-specific scripts.  A timer is run that checks whether
