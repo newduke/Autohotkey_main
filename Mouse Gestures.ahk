@@ -75,8 +75,10 @@ Return
 act1:
 	GetKeyState, ButtonState, %GestureKeyClean%, P
 	If ButtonState = D
+    {
       nop = 0
-		;Send,!{Tab} ;^x
+		Send,!{Tab} ;^x
+      }
 	goto cancelAct
 
 act2:
@@ -92,11 +94,7 @@ act2:
 		   WinClose,ahk_id %KDE_id%
 		*/
 		;WinClose, A
-    }
-    If 0 {
-      send,!t
-      send,b{up}{up}{enter}
-      return
+      WinMinimize, A
     }
 	goto cancelAct
 act3:

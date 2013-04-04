@@ -1,4 +1,6 @@
 #MaxHotkeysPerInterval 200
+global CapsHeld 
+
 hotkey, *u, Home
 hotkey, *u up, HomeR
 hotkey, *o, End

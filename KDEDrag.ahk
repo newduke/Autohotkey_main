@@ -33,7 +33,32 @@ SetWinDelay,2
 CoordMode,Mouse
 return
 */
-!LButton::
+
+; from key states, concat the corresponding AHK modifiers, + ^ !,
+; e.g., shiftstate=altstate=D ==> KSM = +!
+KeyStates() 
+{
+	GetKeyState, shiftstate, Shift
+	GetKeyState, ctrlstate, Ctrl
+	GetKeyState, altstate, Alt
+	KSM = 
+	if shiftstate = D
+		KSM = +
+	if ctrlstate = D
+		KSM = %KSM%^
+	if altstate = D
+		KSM = %KSM%!
+	return KSM
+}
+
+Alt & LButton::
+KSM := KeyStates()
+if (KSM != "!")
+{
+	; fake the action
+	MouseClick, Left,,,,,D
+	return
+}
 If DoubleAlt
 {
 	MouseGetPos,,,KDE_id
@@ -62,10 +87,12 @@ Loop
 	KDE_WinX2 := (KDE_WinX1 + KDE_X2) ; Apply this offset to the window position.
 	KDE_WinY2 := (KDE_WinY1 + KDE_Y2)
 	WinMove,ahk_id %KDE_id%,,%KDE_WinX2%,%KDE_WinY2% ; Move the window to the new position.
+	ToolTip, ( %KDE_WinX2% `, %KDE_WinY2% )
 }
+ToolTip
 return
 
-!RButton::
+Alt & RButton::
 If DoubleAlt
 {
 	MouseGetPos,,,KDE_id
@@ -127,13 +154,15 @@ Loop
 	WinMove,ahk_id %KDE_id%,,%KDE_WinX1%,%KDE_WinY1%,%KDE_WinW%,%KDE_WinH%
 	KDE_X1 := (KDE_X2 + KDE_X1) ; Reset the initial position for the next iteration.
 	KDE_Y1 := (KDE_Y2 + KDE_Y1)
+	ToolTip, ( %KDE_WinX1% `, %KDE_WinY1% ) x ( %KDE_WinW% `, %KDE_WinH% )
 }
+ToolTip
 return
 
 ; "Alt + MButton" may be simpler, but I
 ; like an extra measure of security for
 ; an operation like this.
-!MButton::
+Alt & MButton::
 If DoubleAlt
 {
 	MouseGetPos,,,KDE_id
@@ -143,10 +172,11 @@ If DoubleAlt
 }
 MouseGetPos,,,KDE_id
 WinSet,Bottom,,ahk_id %KDE_id%
+;WinSet,Bottom,,Program Manager
 return
 
-LAlt & WheelDown::AltTab
-LAlt & WheelUp::ShiftAltTab
+Alt & WheelDown::AltTab
+Alt & WheelUp::ShiftAltTab
 return
 
 ; This code detects "double-clicks" of

@@ -1,18 +1,38 @@
+; -------------------------------------------------------------------------
+; AutoHotkey.ahk
+; author: Jordan Weitz (newduke@gmail.com)
+; 
+
+;
+; setup
+;
 ; various other scripts to run
 #include ArrowKeyS.ahk
+#Include GesturesS.ahk
+
 SetWinDelay,2
 CoordMode,Mouse
+;SendMode, Input
 
 ; common variables ---------------------------------------------------------
 ;A_Editor = "C:\Program Files\TextPad 4\TextPad.exe"
-A_Editor = "C:\Program Files\AutoHotkey\SciTE_beta5\SciTE.exe"
+A_Editor = "C:\Program Files\AutoHotkey\SciTE\SciTE.exe"
 ;A_Editor = "c:\Windows\Notepad.exe"
+
+global DebugLevel := 0
+;DebugLevel := 1
 
 ; Initialize variables for borderless script: http://www.autohotkey.com/community/viewtopic.php?t=84446
 X := 0
 Y := 0
 W := A_ScreenWidth
 H := A_ScreenHeight
+
+KeyboardToggle := 1
+keyboardNames1 := "Qwerty", keyboardNames0 := "Colemak"
+
+GroupAdd, Chrome, ahk_class Chrome_WidgetWin_0,,,,Tabs Outliner
+GroupAdd, Chrome, ahk_class Chrome_WidgetWin_1,,,,Tabs Outliner
 
 ;--------------------------------------------------------------------------
 ; Setup the program-specific scripts.  A timer is run that checks whether
@@ -30,74 +50,186 @@ LastScriptFile := "foo.ahk"
 fs := 2
 
 SetTimer, CheckFullScreen, 50
-;--------------------------------------------------------------------------
-
-;;!! I've forgotten what this is all about.
-;;TODO: document me.
-;OnMessage(0x4a, "Receive_WM_COPYDATA")  ; 0x4a is WM_COPYDATA
-OnMessage(0x4a, "Receive_Hold")
-
+SetTimer, ScriptStartup, -50
+;~ Gosub SetupErgoBreak
 
 ;--------------------------------------------------------------------------
-; for debugging, there is a GUI caled vDebugOut.  
-; Also consider debugging in SciTE.
-;Gui, Add, Edit, r9 vMyEdit, Text to appear inside the edit control 
-Gui, Add, ListBox, w500 h300 vDebugOut, 
-;Gui, Show
-
-;;;!! need 5-button mouse
-#include Mouse Gestures.ahk
-Menu, TRAY, Icon, "Mouse Gestures.ico"
-
-#include KDEDrag.ahk
-#include ArrowKey.ahk
-
 ;;; no longer needed.  KDE drag has push-back; win 7 has finder in start menu
 ;#include WindowPushback.ahk
 ;#include FindIt.ahk
 
-; text expansions ---------------------------------------------------------
-;;!! text expansions are messing with timers
-;;TODO: fixme
-/*::uus::the United States
-::hhg::Hope Josephine Maranatha Gardner
+; TODO: integrate into this script
+run, DragToScroll.ahk
+
+#include misc_library.ahk
+#include CheckFullScreen.ahk
+#include ErgoBreaks.ahk
+#include KDEDrag.ahk
+#include ArrowKey.ahk
+
+; currently must be last include
+#Include Gestures.ahk
+#Include KDEDrag.ahk
+#if
+
+return
+
+;common functions ---------------------------------------------------------
+{
+ToolTipTime(tip, time = 1000) {
+	ToolTip, % tip
+	SetTimer, HideTip, % time
+}
+DebugTip(tip, level = 1) {
+	if (DebugLevel >= level)
+		ToolTipTime(tip, 5000)
+}
+
+HideTip:
+	ToolTip
+return
+}
+;! common functions -------------------------------------------------------
+
+
+; WIP Colemak -------------------------------------------------------------
+{
+; Colemak keyboard, only when not in meta state.
+#If (NOT ((GetKeyState("Control", "P")) OR (GetKeyState("Alt", "P")) OR (GetKeyState("WIN", "P")) 
+	OR CapsHeld OR KeyboardToggle OR colemakWindow))
+{
+	sendlevel 1
+	e::f
+	r::p
+	t::g
+	y::j
+	u::l
+	i::u
+	o::y
+	
+	s::r
+	d::s
+	f::t
+	g::d
+	j::n
+	k::e
+	l::i
+	n::k
+	`;::o
+
+	;~ +æ::"
+	;~ æ::'
+	;~ '::SC01B
+	
+	
+	<^>!m::Send {*}
+	<^>!i::Send {_}
+	<^>!t::Send {&}
+	<^>!o::Send {=}
+	<^>!r::Send {+}
+	<^>!q::Send {?}
+	<^>!w::Send {!}
+	<^>!f::Send {(}
+	<^>!j::Send {)}
+	<^>!g::Send {<}
+	<^>!h::Send {>}
+	<^>!a::Send {@}
+	
+	<::/
+	
+	; p->ø
+	p::SC027
+	; SC01A::SC027 ; 27=ø
+	; ¨->æ
+	SC01B::SC028
+	
+	
+	;vkDDsc01A::
+	
+	;~ Capslock::Backspace
+	;~ Backspace::Capslock
+}
+#IF
+
+; Toggle Colemak
+LAlt & space::
+	KeyboardToggle := 1 - KeyboardToggle
+	ToolTipTime("Active: " . keyboardNames%KeyboardToggle%, 1000)
+return
+} ; WIP
+
+; Hack to disable alternate keyboard if in a gmail window
+WindowChanged(title) {
+	global colemakWindow
+	
+	gmailTitle := "- Gmail - Google Chrome"
+	if (substr(title, -22) == gmailTitle && instr(title, "Compose") == 0) {
+		colemakWindow := 1
+	} else {
+		colemakWindow := 0
+	}
+}
+
+; Text grabber.
+; Examine the clipboard and offer intelligent menu of suggestions.
+;~ OnClipboardChange:
+	if (A_EventInfo = 1)
+	{
+		; Analyze clipboard contents
+		DebugTip(Clipboard)
+	}
+return
+
+
+;  --------------------------------------------------------------------------
+; text expansions (hotstrings) --------------------------------------------------
+;; NOTE: text expansions were messing with timers
+;; see also "texter:" http://lifehacker.com/238306/lifehacker-code-texter-windows
+::uus::the United States
 ::aaj::Ashley Jordan
 ::jjw::Jordan Weitz
-::cliche::cliché
+::jauth::author: Jordan Weitz (newduke@gmail.com)
+::cliche::cliché 
+::DATE::
+	send, % A_DD . " " . A_MMM . " " . A_YYYY
+return
+; -------------------------------------------------------------------------
 ;--------------------------------------------------------------------------
-*/
-; these scripts will work even with LWin disabled (so they work in games)
-;~LWin & WheelUp::SoundSet, +10 ; Win+MouseWheel forward: Louder
-;~LWin & WheelDown::SoundSet, -10 ; Win+MouseWheel backward: Lower
-;~LWin & Numpad0::SoundSet, +1,, mute ; Win+Numpad0: Volume on/off
 
+; Run once at startup, handle configuration, etc.  -------------------------
+ScriptStartup:
+	IniRead, UpAsShift, hotkeys.ini, KeyStates, UpAsShift, False
+	if (UpAsShift = "False") {
+		gosub ToggleUpAsShift
+	}
+return
+
+; --------------------------------------------------------------------------
+; Key bindings -------------------------------------------------------------
+; --------------------------------------------------------------------------
 ^!r::reload
 ^!e::run, %A_Editor% AutoHotkey.ahk, %A_ScriptDir%
 ^!t::run, %A_Editor% %A_ScriptDir%\Specific\%LastScriptFile%
 ^+!Space::Suspend 
 
-^+F1::run, www.google.com/ig
-^+F2::run, https://udn.epicgames.com/Three/WebChanges
-^+F3::run, http://gmail.google.com
-
-/*XButton1::
-;f11::
-send,!t
-send,b{up}{up}{enter}
-return
-*/
-/*XButton2::
-      send,!t
-      send,b{up}{up}{enter}
-      return
-*/
-
 ; The up key on the logitech is in a weird spot
-up::Shift
+Up::RShift
+RShift::Up ;F23
+
 ; Toggle the up macro
-^!z::
-Hotkey, *up, toggle
-Hotkey, *up up, toggle
+LShift & RShift::
+	IniRead, UpAsShift, hotkeys.ini, KeyStates, UpAsShift, False
+	if (UpAsShift = "False") {
+		UpAsShift = "True"
+	} else {
+		UpAsShift = "False"
+	}		
+	IniWrite, %UpAsShift%, hotkeys.ini, KeyStates, UpAsShift
+ToggleUpAsShift:
+	Hotkey, *up, toggle
+	Hotkey, *up up, toggle
+	Hotkey, *rshift, toggle
+	Hotkey, *rshift up, toggle
 return
 
 Beeep()
@@ -105,66 +237,42 @@ Beeep()
 	SoundPlay, *48
 }
 
-Receive_Hold()
-{
-	global
-	HoldLastScriptFile := LastScriptFile
-	;Beeep()
-	;MsgBox
-	;ToolTip %HoldLastScriptFile%`n%lastTitle%`nA blank string was received or there was an error.
-	return true
-}
+; This is how you can use fn hotkey.  see also http://www.autohotkey.com/docs/KeyList.htm#SpecialKeys
+;~ SC163::ToolTipTime("fn")
+;~ return
+	
+; toggle touchpad tapping (disable clicking from annoying touchpad, win 7)
+^F12::
+   Run, rundll32.exe shell32.dll`,Control_RunDLL main.cpl @0 ;mouse options
+   winwaitactive,Mouse Properties
+   Send, ^+{TAB}
+   ;Send, !t!a ;; disable
+   Send, !n ; settings
+   winwaitactive,TouchPad Properties
+   Send, +{tab}+{tab}t!e!a  ; toggle tapping
+   Send, {esc}
+   winwaitactive,Mouse Properties
+   Send, {esc}
+return
 
-Receive_WM_COPYDATA(wParam, lParam)
-{
-	lpDataAddress := lParam + 8  ; This is the address of CopyDataStruct's lpData member.
-	lpData := 0  ; Init prior to accumulation in the loop.
-	Loop 4  ; For each byte in the lpData integer
+;!! TODO: Document me (and others)
+; Add task via chrome task extension
+#t::
+    if not WinActive("ahk_group Chrome")
 	{
-		lpData := lpData | (*lpDataAddress << 8 * (A_Index - 1))  ; Build the integer from its bytes.
-		lpDataAddress += 1  ; Move on to the next byte.
+		GroupActivate, Chrome
+		WinWaitActive, ahk_group Chrome
 	}
-	; lpData contains the address of the string to be copied (must be a zero-terminated string).
-	DataLength := DllCall("lstrlen", UInt, lpData)
-	if DataLength <= 0
-		ToolTip %A_ScriptName%`nA blank string was received or there was an error.
-	else
-	{
-		VarSetCapacity(CopyOfData, DataLength)
-		DllCall("lstrcpy", str, CopyOfData, UInt, lpData)  ; Copy the string out of the structure.
-		; Show it with ToolTip vs. MsgBox so we can return in a timely fashion:
-		ToolTip %A_ScriptName%`nReceived the following string:`n%CopyOfData%
-	}
-	return true  ; Returning 1 (true) is the traditional way to acknowledge this message.
-}
-
-; window stats
-^!y::run, WindowStats.ahk
-
-;!! count words? WTF?
-^F2::
-If WinActive("ahk_class WindowsForms10.Window.8.app.0.218f99c")
-{
-	ID := WinExist("ahk_class WindowsForms10.Window.8.app.0.218f99c")
-	ControlGetFocus, Focused, ahk_id %ID%
-	ControlGetText, Text, %Focused%, ahk_id %ID%
-	RegExReplace( Text, "\w+", "", Count )
-	MsgBox, 64, Word Count, %  "Words:`t" Count
-}
-Return
-
-
-;!! Document me (and others)
+	send, !d^at{space}
+	return
 ^#e::
 #e::
-GroupAdd, Explorers, ahk_class CabinetWClass
-RunCycleApp("Explorers", "c:\", "ctrl")
-return
+	GroupAdd, Explorers, ahk_class CabinetWClass
+	RunCycleApp("Explorers", "c:\", "ctrl")
+	return
 ^#q::
 #q::
-GroupAdd, Chrome, ahk_class Chrome_WidgetWin_0
-GroupAdd, Chrome, ahk_class Chrome_WidgetWin_1
-RunCycleApp("Chrome", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
+	RunCycleApp("Chrome", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
 return
 ^#j::
 #j::
@@ -173,9 +281,19 @@ RunCycleApp("Consoles", "cmd", "ctrl")
 return
 #v::RunRestoreHideApp("GitHub","C:\Users\Ash\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\GitHub, Inc\GitHub.appref-ms")
 
-;;; Control iTunes --------------------------------------------------------------------------
+;  --------------------------------------------------------------------------
+; Control Media -------------------------------------------------------------
+; these scripts will work even with LWin disabled (so they work in games)
+;~LWin & WheelUp::SoundSet, +10 ; Win+MouseWheel forward: Louder
+;~LWin & WheelDown::SoundSet, -10 ; Win+MouseWheel backward: Lower
+;~LWin & Numpad0::SoundSet, +1,, mute ; Win+Numpad0: Volume on/off
+
 ;;#i::RunRestoreHideApp2("iTunes","iTunes","iTunes")
-#i::RunRestoreHideApp2("ahk_class SpotifyMainWindow","C:\Users\Ash\AppData\Roaming\Spotify\spotify.exe","Spotify")
+#i::
+ActivateMedia:
+RunRestoreHideApp2("ahk_class SpotifyMainWindow","C:\Users\Ash\AppData\Roaming\Spotify\spotify.exe","Spotify")
+return
+
 #m::
 Send, {Media_Prev}
 ;If WinExist("ahk_class iTunes") or WinExist("ahk_class SpotifyMainWindow")
@@ -197,35 +315,81 @@ If WinExist("ahk_class iTunes") or WinExist("ahk_class SpotifyMainWindow")
 ControlSend, ahk_parent, {SPACE}  ; play/pause
 return
 #up::
-#Volume_up::
+!Volume_up::
 IfWinExist, ahk_class SpotifyMainWindow
 ControlSend, ahk_parent, ^{up}  ; volume up
 return
 #down::
-#Volume_down::
+!Volume_down::
 IfWinExist, ahk_class SpotifyMainWindow
 ControlSend, ahk_parent, ^{down}  ; volume downa
 return
 
 ;LWin & !k::goto KillActive
 ;RWin & !k::goto KillActive
-;paste
+
+; paste key stuff (to circumvent fields without paste, this just stuffs the keys)
 ;TODO: turn \r\n's into \r's
-LWin & o::
-RWin & o::
+LWin & p::
+;~ RWin & o::
 SetKeyDelay, -1 ;100
 StringReplace, clip, clipboard, `r`n, `r, All
 SendRaw, %clip%
 return
 
-^!n::
+;~ ^!n::
 #n::
-;~ RunRestoreHideApp("TextPad ","TextPad")
-;~ GroupAdd, Editors, TextPad -
-;~ GroupAdd, Editors, NotePad
-;~ GroupAdd, Editors, ahk_class OpusApp;Microsoft Word
-;~ GroupActivate, Editors, R
 run, %A_Editor%
+return
+
+#w::  Run, %A_AHKPath%\..\Au3_spy.exe
+
+;#h::
+; record a macro
+input, myMacro, V T60, {RControl}
+IfInString, ErrorLevel, EndKey
+{
+	MsgBox, = = %myMacro%
+}
+return
+
+;~ #p::
+; send current clipboard buffer to ventrillo comment area
+IfWinExist, Ventrilo
+{
+	ControlClick, Button5
+	WinWait, Comment
+	If ErrorLevel = 0
+	{
+		ControlSend, Edit1, ^v
+		ControlSend, ahk_parent, {enter}
+	}
+}
+return
+
+LWin:: 
+return ; nothing
+
+; kill the active window via its process.  
+KillActive:
+	IfWinActive, Program Manager
+		return
+	GetKeyState, AltHeld, Alt, P
+	if AltHeld = U
+		return
+	GetKeyState, AltHeld, LWin, P
+	if AltHeld = U
+		return
+
+	;don't kill PID 0 or 4 (killing system threads = bad)
+	WinGet, pid, PID , A
+	if (pid && pid != 0 && pid != 4)
+		Process, Close, %pid%
+	;WinKill, A
+return
+
+; yes, it does nothing.  used to disable keys
+Nothing:
 return
 
 RunCycleApp(group1, app, forcekey)
@@ -245,181 +409,6 @@ RunCycleApp(group1, app, forcekey)
 	}
 	GroupActivate, %group1%, R
 	return act
-}
-
-;#h::
-; record a macro
-input, myMacro, V T60, {RControl}
-IfInString, ErrorLevel, EndKey
-{
-	MsgBox, = = %myMacro%
-}
-return
-
-#p::
-; send current clipboard buffer to ventrillo comment area
-IfWinExist, Ventrilo
-{
-	ControlClick, Button5
-	WinWait, Comment
-	If ErrorLevel = 0
-	{
-		ControlSend, Edit1, ^v
-		ControlSend, ahk_parent, {enter}
-	}
-}
-return
-
-LWin:: 
-return ; nothing
-
-; kill the active window via its process.  
-KillActive:
-IfWinActive, Program Manager
-	return
-GetKeyState, AltHeld, Alt, P
-if AltHeld = U
-	return
-GetKeyState, AltHeld, RWin, P
-if AltHeld = U
-	return
-
-;don't kill PID 0 or 4 (killing system threads = bad)
-WinGet, pid, PID , A
-if (pid && pid != 0 && pid != 4)
-	Process, Close, %pid%
-;WinKill, A
-return
-
-; yes, it does nothing.  used to disable keys
-Nothing:
-return
-
-;^!i::
-GetAllWindows:
-	WinGet, AllWindows, list,,, Program Manager
-	loop, 0;3 ;%AllWindows%
-	{
-		foo := AllWindows%A_Index%
-		WinGetTitle, title, ahk_id %foo%
-		msgbox, %title%, %foo%
-	}
-return
-	
-
-;////////////////////////////////////////////////////////////////////////
-CheckFullScreen:
-	WinGetTitle, title, A
-	if (title != lastTitle)
-	{
-		lastTitle := title
-		; these windows need to go away.  kill em!
-		if (lastTitle == "Purchase Reminder")
-		{
-			Send, {tab}{enter}
-		}
-		else if (lastTitle == "Please purchase WinRAR license")
-		{
-			Send, {tab}{tab}{enter}
-		}
-		else if (lastTitle == "Automatic Updates")
-		{
-;			Send, !l
-		}
-		else if (lastTitle == "Compare It!")
-		{
-			Send, {enter}
-		}
-		
-	}
-
-
-	;////////////////////////////////////////////////////////////////////////
-	WinGet, title, ProcessName, A
-	StringTrimRight, title, title, 4 ; strip .exe
-	;WinGetTitle, title, A
-	;StringMid, beg, title, 0, 3
-	;if (beg = "BF2") 
-	;	title := "BF2"
-	ScriptFile := Title . ".ahk"
-	Empty :=
-	SplitPath, title,,,ext
-	if (ext != "ahk" && Title != Empty && ScriptFile != LastScriptFile)
-	{
-		;GuiControl, Text, DebugOut, %ScriptFile%
-		;GuiControl, Text, DebugOut, %ext%
-			
-		; find the old running script and kill it
-		; have to be sure it's class AutoHotkey or it might match, say,
-		;   an editor editing a script of the same name.
-		DetectHiddenWindows, On
-		SetTitleMatchMode, 2
-		;MsgBox, %LastScriptFile%
-		If (HoldLastScriptFile != LastScriptFile)
-		{
-			IfWinExist, %LastScriptFile% ahk_class AutoHotkey
-			{
-				;MsgBox, %LastScriptFile%
-				If (LastScriptFile != "Autohotkey.ahk")
-					WinClose
-			}
-		}
-		HoldLastScriptFile := ""
-		; if a script of the correct name exists, run it here
-		IfExist, %A_scriptdir%\Specific\%ScriptFile%
-		{
-			; i hate that message that tells me i'm reloading a script
-			IfWinNotExist, %ScriptFile% ahk_class AutoHotkey
-			{
-				run, "%A_scriptdir%\Specific\%ScriptFile%"
-			}
-		}
-		; remember the name of this process regardless of whether a script is running
-		LastScriptFile := ScriptFile
-	}
-	fs_latched := IsFullScreen()
-	if (LastScriptFile = "Guild Wars.ahk")
-		fs_latched := 1
-	if (fs_latched != fs)
-	{
-		fs := fs_latched
-		Full_Only := "Off"
-		Windowed_Only := "On"
-		if (fs)
-		{
-			Full_Only := "On"
-			Windowed_Only := "Off"
-		}
-/*		IfWinExist, Mouse Gestures
-		{
-			;WinGetTitle, title
-			;IfInString, (disabled)
-			;	If (
-			;SoundBeep
-			Send, ^\
-		}
-		*/
-		Disabled := 1 - fs
-		gosub ToggleActive
-		Hotkey, !LButton, %Windowed_Only%
-		Hotkey, !RButton, %Windowed_Only%
-		Hotkey, !MButton, %Windowed_Only%
-		Hotkey, LAlt & WheelDown, %Windowed_Only%
-		Hotkey, LAlt & WheelUp, %Windowed_Only%
-		Hotkey, ^!e, %Windowed_Only%
-		;Hotkey, ^!a, %Windowed_Only%
-		Hotkey, ^!r, %Windowed_Only%
-		Hotkey, !MButton, %Windowed_Only%
-		Hotkey, LWin, %Full_Only%
-		Hotkey, *Capslock, %Windowed_Only%
-	}
-return
-
-CMDret(CMD)
-{
-  VarSetCapacity(StrOut, 10000)
-  RetVal := DllCall("cmdret.dll\RunReturn", "str", CMD, "str", StrOut)
-  Return, %StrOut%
 }
 
 RunRestoreHideApp2(title1, app, title2)
@@ -455,168 +444,168 @@ RunRestoreHideApp(title1, app)
 	a:= RunRestoreHideApp2(title1, app, "")
 	return %a%
 }
-; returns 1 if the active app is full screen (as indicated by a window at 0,0 which extends to the full bounds of the desktop
-IsFullScreen()
-{
-	WinGetActiveStats, Title, Width, Height, X, Y
-	; need to special case this, as this is in fact a full screen window, but
-	; it occurs when no apps are full screen
-	If Title = Program Manager
-		return 0
-	If Title = Chrome
-		return 0
-	;MsgBox, %Title%
-	;MsgBox %X%, %Y%, %Width%, %Height%, --  %A_ScreenWidth%, %A_ScreenHeight%
-	if X != 0
-		return 0
-	if Y != 0
-		return 0
-	;SoundBeep
-	;if Width == %A_ScreenWidth% && Height == %A_ScreenHeight%
-	;	return 1
-	;SoundBeep
-	;MsgBox, %Width%"," %Height%", -- " %A_ScreenWidth%"," %A_ScreenHeight%
-	if (width = %A_ScreenWidth% && Height = %A_ScreenHeight%)
-		return 1
-/*	if (Width = 640 && Height = 480)
-		return 1
-	if (Width = 800 && Height = 600)
-		return 1
-	if (Width = 1024 && Height = 768)
-		return 1
-	if (Width = 1152 && Height = 864)
-		return 1
-	if (Width = 1280 && Height = 1024)
-		return 1
-	if (Width = 1600 && Height = 1200)
-		return 1
-		*/
-	;SoundBeep
-	return 0
-}
 
-HideAIM:
-DetectHiddenWindows, On
-SetTitleMatchMode, 2
-IfWinExist, Default Away Message
-{
-	WinActivate
-	;WinWaitActive
-	Send, {Enter}
-}
-else IfWinExist, Buddy List
-{
-	;WinActivate
-	SendMessage, 0x111, 24003, 0
-	;WinMenuSelectItem, Buddy List,,My AIM,Away Message,Default Away Message
-	;MsgBox, Buddy
-}
-return
+; -------------------------------------------------------------------------
+; App-specific scripts ----------------------------------------------------
+; -------------------------------------------------------------------------
 
-/*
-#i::
-WinGetClass, cl, A
-If cl=wndclass_desked_gsk
+; chrome --------------------------------------------------------------------
+#IfWinActive, ahk_class Chrome_WidgetWin_1
+; open bookmark in chrome
+#b::Send, {alt down}d{alt up}b{space}
+
+#IfWinActive
+
+; SciTE hotkeys -------------------------------------------------------------
 {
-	WinGet, hwnd, ID, A
-	WinGet, ActiveControlList, ControlList, A
-	Loop, Parse, ActiveControlList, `n
-	{
-		ControlGetText, ctitle, %A_LoopField%, A
-		if ctitle=Output
-		IfInString, A_LoopField, GenericPane
-		{
-			ControlGet, hwnd, ID, , A_LoopField, A
-			SendMessage, 0x1043, 0, 0, A_LoopField, A
-			SendMessage, 0x07B, 0, 0, A_LoopField, A
-			;SendMessage, 0x1043, 0, 0, A_LoopField, A
-			ControlClick, A_LoopField, A,,RIGHT
+#If WinActive("SciTE4AutoHotkey")
+!/::
+	command := "^{enter}"
+	goto autocomplete
+^i::
+^space::
+	command := "^i"
+	goto autocomplete
+autocomplete:
+	SuccessKeys := "{{}{}}{(}{)}{space}{.}{-}{enter}{backspace}{Left}{Right}{Up}{Down}{Home}{End}{PgUp}{PgDn}"
+	passThru := InStr(SuccessKeys, "{backspace")
+	send,%command%
+	j:=0
+	Loop {
+		j++
+		DebugTip("LOOP " . j . ": Key: " . k . " : " asc(k) . " " . ErrorLevel)
+		Input k,L1MT14,{RControl}{LAlt}{RAlt}{LWin}{RWin}{AppsKey}{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{F9}{F10}{F11}{F12}{Del}{Ins}{Numlock}{PrintScreen}{Pause}%SuccessKeys%
+		DebugTip("iLOOP " . j . ": Key: " . k . " : " asc(k) . " " . ErrorLevel)
+		If (ErrorLevel && BeginsWith(ErrorLevel, "EndKey:")) {
+			DebugTip("key " . k . " - " . ErrorLevel . " - " . BeginsWith(ErrorLevel, "EndKey:"))
+			EndKey := SubStr(ErrorLevel, 8)
+			SearchKey := "{" . EndKey . "}"
+			found := InStr(SuccessKeys, SearchKey)
+			if (found) {
+				if (EndKey = "enter") {
+					send, {enter}
+					return
+				}
+				if (found = passThru) {
+					send, % SearchKey
+					send, %command%
+					continue					
+				}
+				if (found >= passThru) {
+					send, % SearchKey
+					continue
+				}
+				Send, {return}
+				Send, %SearchKey%
+				;DebugTip("key " . k . " - " . ErrorLevel)
+				return
+			}
+			break
+		}
+		If (ErrorLevel == "Max") {
+			DebugTip("mLOOP " . j . ": Key: " . k . " : " asc(k) . " " . ErrorLevel)
+			If (k == chr(27)) { ; escape
+				DebugTip("ESC")
+				Send, {esc}
+				return
+			}
+			SendRaw, %k%
+			send, %command%
 		}
 	}
-	
+	DebugTip("Exit: " . ErrorLevel . " -- " . EndKey)
+	send,{esc}
+return
+#If
 }
-return
-*/
 
-; comment me! -------------------------------------------------------------
-#c::
-SetKeyDelay, -1  ; Most editors can handle the fastest speed.
-send, {home}+{end}^c ; select all, copy
-send, {- 75} ; line-o-dashes
-send, {home}{insert}^v {insert}{home} ; paste old text back on top
+; GetComment() returns comment style
+; TODO: generalize
+GetComment() {
+If (WinActive("SciTE4AutoHotkey"))
+	return ";"
+else
+	return "//"
+}
+
+; Fancy-comment current line.  Hold ctrl to center comment
+;x --> leads to
+; x -------------------------------------------------------------------------
+^#-::
+#-::
+	SetKeyDelay, -1  ; Most editors can handle the fastest speed.
+	clipboard =
+	send, {end}+{home}+{home}^c ; select all, copy
+	ClipWait, .2
+	if (ErrorLevel)
+		return
+	comment := Trim(clipboard)
+	commentChar := GetComment()
+	if (BeginsWith(comment, commentChar)) {
+		comment := Trim(substr(comment, strlen(commentChar) + 1))
+	} else {
+	}
+	blockLength = 74 ; TODO: make global/setting
+	n := blockLength - StrLen(comment)
+	if (n < 0) 
+		return
+	line := ""
+	if (! BeginsWith(A_ThisHotkey, "^")) {
+		loop, %n%
+			line := "-" + line
+		line = %commentChar% %comment% %line%
+	} else {
+		n := n/2
+		loop, %n%
+			line := "-" + line
+		line = %commentChar% %line% %comment% %line%
+	}
+	Clipboard := line
+	Send, ^v{right}
 return
 
+; input repeated
+; ex: input: "5q" sends "qqqqq"
 ^!u::
-input, rep, T3, qwertyuiop[]\asdfghjkl;'zxcvbnm{comma}./<>?:"{}|-=
-SetKeyDelay, -1  ; Most editors can handle the fastest speed.
-if ErrorLevel = Max
-	return
-if ErrorLevel = Timeout
-	return
-StringRight, key, ErrorLevel, 1
-loop, %rep%
 {
-	SendRaw, %key%
+	input, rep, T3, qwertyuiop[]\asdfghjkl;'zxcvbnm{comma}./<>?:"{}|-=
+	SetKeyDelay, -1  ; Most editors can handle the fastest speed.
+	if ErrorLevel = Max
+		return
+	if ErrorLevel = Timeout
+		return
+	StringRight, key, ErrorLevel, 1
+	loop, %rep%
+	{
+		SendRaw, %key%
+	}
 }
 return
 
-;/////////////////////////// Test /////////////////////////////////////////////
-
-
-;!!! read, understand, modify, comment:
-#w::
-   WinGet, window, ID, A   ; Use the ID of the active window.
-   Toggle_Window(window)
-return
-
-!^w::
-   MouseGetPos,,, window   ; Use the ID of the window under the Mouse.
-   Toggle_Window(window)
-return
-
-Toggle_Window(window)
+; -------------------------------------------------------------------------
+; Temporary scripts -------------------------------------------------------
+; -------------------------------------------------------------------------
 {
-   global X, Y, W, H   ; Since Toggle_Window() is a function, set Up X, Y, W, and H as globals
-   WinGet, S, Style, % "ahk_id " window   ; Get the style of the window
-   If (S & +0x840000)      ; if not borderless
-   {
-      WinGetPos, X, Y, W, H, % "ahk_id " window   ; Store window size/location
-      XMed := (2* X + W) / 2   ; Find the middle of the window
-      YMed := (2* Y + H) / 2   ; Find the middle of the window
-      ; We check to see if the current window is outside of the default monitor.
-      ; If it is, we increment our multiplier and try the next window (in all 4 directions).
-      ; NOTE: This won't work for multi-monitor setups with different resolutions.
-      Loop
-      {
-         if(XMed > A_ScreenWidth * A_Index || XMed < A_ScreenWidth * (-1 * A_Index))
-            continue
-         if(XMed > A_ScreenWidth * (A_Index - 1))
-            XPos := (A_Index - 1) * A_ScreenWidth
-         else
-            XPos := (-1 * A_Index) * A_ScreenWidth
-         break
-      }
-      Loop
-      {
-         if(YMed > A_ScreenHeight * A_Index || YMed < A_ScreenHeight * (-1 * A_Index))
-            continue
-         if(YMed > A_ScreenWidth * (A_Index - 1))
-            YPos := (A_Index - 1) * A_ScreenHeight
-         else
-            YPos := (-1 * A_Index) * A_ScreenHeight
-         break
-      }
-	  WinSet, Style, -0x840000, % "ahk_id " window   ; Remove borders
-	  ;WinSet, Style, ^0xC00000 ; toggle title bar
+; autofill password
+^#i::send, 408{tab}dpq3v{enter}
 
-      ;WinMove, % "ahk_id " window,, %XPos%, %YPos%, %A_ScreenWidth%, %A_ScreenHeight%  ; Stretch to Screen-size
-      return
-   }
-   If (S & -0x840000)      ; if borderless
-   {
-      WinSet, Style, +0x840000, % "ahk_id " window   ; Reapply borders
-      ;WinMove, % "ahk_id " window,, X, Y, W, H      ; return to original position
-      return
-   }
-   Return   ; return if the other if's don't fire (shouldn't be possible in most cases)
+; just for debugging --------------------------------------------------------
+TrueFalse(bool) {
+	if (bool)
+		return "true"
+	return "false"
+}
+#u::
+	;~ comment := "; xyz"	
+	;~ comment := Trim(substr(comment, strlen(GetComment()) + 1)) . ".."
+	DebugTip(TrueFalse(BeginsWith("abcd", "abc")) . chr(13) 
+	. TrueFalse(BeginsWith("abcd", "abcde"))
+	. chr(13) . TrueFalse(BeginsWith("abcd", "bc")) . chr(13)
+	. TrueFalse(BeginsWith("max", "longish")) . chr(13) )
+	;ToolTipTime(comment)
+return
+
+; Convert Google Tasklist items to numbered items
+; one row at a time
+;~ #k::Send, +{up}{del}^{up}
 }
