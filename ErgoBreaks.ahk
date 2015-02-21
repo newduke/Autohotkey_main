@@ -40,6 +40,13 @@ SetupErgoBreak:
 	SetErgoTimer(eb_interval)
 return
 
+GetErgoTimer() {
+	global eb_zero
+	if (eb_zero = 0)
+		return 0
+	return (eb_zero - A_TickCount)/1000
+}
+
 SetErgoTimer(time) 
 {
 	global eb_zero, eb_exit
@@ -56,35 +63,31 @@ SetErgoTimer(time)
 ShowTickCount()
 {
 	global eb_zero
-	;MsgBox, % (eb_zero - A_TickCount)/60/1000
 	if (eb_zero = 0)
 		ToolTip, Disabled
 	else
-		ToolTip, % (eb_zero - A_TickCount)/60/1000 . " minutes"
+		ToolTip, % GetErgoTimer()/60 . " minutes"
 	SetTimer, HideTip, -1500
 }
 
 ; Display time left on current nag
-^#1::
+eb_display_time() {
 	ShowTickCount()
-return
+}
 
-; Set current nag to 120 minutes 
-^#2::
+; Set current nag to secs
+eb_set_timer(secs) {
 	eb_ignorednags := 0
-	SetErgoTimer(2*3600)
+	SetErgoTimer(secs)
 	ShowTickCount()
-return
-
-; Add 30 minutes to current nag
-^#3::
-	eb_ignorednags := 0
-	SetErgoTimer(1800 + (eb_zero - A_TickCount)/1000)
-	ShowTickCount()
-return
+}
+; Add secs to current nag
+eb_set_timer_rel(secs) {
+	eb_set_timer(secs + GetErgoTimer())
+}
 
 ; Toggle nagger
-^#4::
+eb_toggle() {
 	eb_ignorednags := 0
 	gosub ErgoHide
 	if (eb_zero = 0)
@@ -92,13 +95,16 @@ return
 	else
 		SetErgoTimer(0)
 	ShowTickCount()
-return
+}
 
 ; Display nag window, flashing it
-ErgoNag:
+^#n::eb_show_nag()
+
+eb_show_nag()
 {
-^#n::
-	eb_ignorednags += 1
+	global eb_field, eb_texts
+ErgoNag:
+	eb_ignorednags += 1 
 	GuiControl, ergo:, ErgoText, % eb_texts%eb_field%
 	Gui, ergo:show, NA
 	; Toggle the AlwaysOnTop to ensure the window stacks above all other windows (even though it doesn't activate)

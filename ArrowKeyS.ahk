@@ -1,29 +1,40 @@
-#MaxHotkeysPerInterval 200
-global CapsHeld 
+; ArroyKeys
+; author: Jordan Weitz (newduke@gmail.com) 
+;
+; holding caps turns right-hand keys (ijkl) into arrows
+; ctrl+alt+caps = functional capslock
+;
+; TODO: generalize
 
-hotkey, *u, Home
-hotkey, *u up, HomeR
-hotkey, *o, End
-hotkey, *o up, EndR
-hotkey, *i, Up
-hotkey, *i up, UpR
-hotkey, *j, Left
-hotkey, *j up, LeftR
-hotkey, *k, Down
-hotkey, *k up, DownR
-hotkey, *l, Right
-hotkey, *l up, RightR
-hotkey, *;, Backspace
-hotkey, *; up, BackspaceR
-hotkey, *h, Del
-hotkey, *h up, DelR
-hotkey, *m, PageUp
-hotkey, *m up, PageUpR
+#MaxHotkeysPerInterval 200
+global CapsHeld := 0
+
+hotkey, *u, Home_
+hotkey, *u up, HomeR_
+hotkey, *o, End_
+hotkey, *o up, EndR_
+hotkey, *i, Up_
+hotkey, *i up, UpR_
+hotkey, *j, Left_
+hotkey, *j up, LeftR_
+hotkey, *k, Down_
+hotkey, *k up, DownR_
+hotkey, *l, Right_
+hotkey, *l up, RightR_
+hotkey, *;, Backspace_
+hotkey, *; up, BackspaceR_
+hotkey, *h, Del_
+hotkey, *h up, DelR_
+hotkey, *m, PageUp_
+hotkey, *m up, PageUpR_
+hotkey, *n, EscD_
+hotkey, *n up, EscR_
 ; backquote the ,
-hotkey, *`,, PageDn
-hotkey, *`, up, PageDnR
+hotkey, *`,, PageDn_
+hotkey, *`, up, PageDnR_
 
 hotkey, *CapsLock, HandleCaps
-AK_toggle = On
+hotkey, *CapsLock up, HandleCapsUp
 
+;~ AK_toggle = On
 gosub ToggleIt

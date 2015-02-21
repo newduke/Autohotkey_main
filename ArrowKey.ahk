@@ -2,85 +2,82 @@
 return
 
 HandleCaps:
-gosub KeyStates
-; ctrl+shift+caps = functional capslock
-if KSM = ^!
-{
-	;^!CapsLock::
-	GetKeyState, capsdown, CapsLock, T
-	if capsdown = D
-		capsdown = Off
-	else
-		capsdown = On
-	SetCapsLockState, %capsdown%
-}
-CapsHeld := 1
-NextPressTime := A_TickCount
-DiffTime := NextPressTime
-DiffTime -= PressTime
-if (DiffTime < 300 || AK_toggle == "On")
-{
-	CapsHeld := 0
-}
-PressTime := NextPressTime
+	if (critical_caps = 1) {
+		return
+	}
+	critical_caps := 1
+	gosub KeyStates
+	; ctrl+alt+caps = functional capslock
+	if (KSM == "^!")
+	{
+		GetKeyState, capsdown, CapsLock, T
+		if capsdown = D
+			capsdown = Off
+		else
+			capsdown = On
+		SetCapsLockState, %capsdown%
+	}
+	CapsHeld := 1
+	NextPressTime := A_TickCount
+	DiffTime := NextPressTime
+	DiffTime -= PressTime
+	ForceHeld := 0
+	if (KSM = "+") ; || DiffTime < 300)
+	{
+		DebugTip("Double tap", 3)
+		ForceHeld := 1
+	}
+	PressTime := NextPressTime
 
-; /////// fall through ////////////
-;*CapsLock Up::
+	; /////// fall through ////////////
+	;*CapsLock Up::
+	gosub ToggleIt
+return
+
+HandleCapsUp:
+	CapsHeld := 0
+	critical_caps := 0
 goto ToggleIt
 
 ScrollLock::
-CapsHeld = 0
-;Send, {ScrollLock}
+	CapsHeld := 0
+	;Send, {ScrollLock}
+goto ToggleIt
 
 ToggleIt:
-if AK_toggle = On
-	AK_toggle = Off
-else
-	AK_toggle = On
-SetScrollLockState, %AK_toggle%
-;Send, {RAlt Up}
-hotkey, *u, %AK_toggle%
-hotkey, *u up, %AK_toggle%
-hotkey, *o, %AK_toggle%
-hotkey, *o up, %AK_toggle%
-hotkey, *i, %AK_toggle%
-hotkey, *i up, %AK_toggle%
-hotkey, *j, %AK_toggle%
-hotkey, *j up, %AK_toggle%
-hotkey, *k, %AK_toggle%
-hotkey, *k up, %AK_toggle%
-hotkey, *l, %AK_toggle%
-hotkey, *l up, %AK_toggle%
-hotkey, *;, %AK_toggle%
-hotkey, *; up, %AK_toggle%
-hotkey, *h, %AK_toggle%
-hotkey, *h up, %AK_toggle%
-hotkey, *m, %AK_toggle%
-hotkey, *m up, %AK_toggle%
-hotkey, *`,, %AK_toggle%
-hotkey, *`, up, %AK_toggle%
-
-; this loop is necessary at the moment to avoid repeated capslock presses from toggling the script.
-; ahk should be able to differentiate between key downs and key repeats
-Loop
-{
-	Sleep, 10
-	GetKeyState, state, CapsLock, P
-	if state = U  ; The key has been released, so break out of the loop.
-		break
-	; ... insert here any other actions you want repeated.
-}
-
-If CapsHeld
-{
-	CapsHeld := 0
-	goto ToggleIt
-}
+	If (CapsHeld || ForceHeld) {
+		AK_toggle = On
+	} else {
+		AK_toggle = Off
+	}
+	DebugTip(AK_toggle . " " . ForceHeld, 3)
+	SetScrollLockState, %AK_toggle%
+	hotkey, *u, %AK_toggle%
+	hotkey, *u up, %AK_toggle%
+	hotkey, *o, %AK_toggle%
+	hotkey, *o up, %AK_toggle%
+	hotkey, *i, %AK_toggle%
+	hotkey, *i up, %AK_toggle%
+	hotkey, *j, %AK_toggle%
+	hotkey, *j up, %AK_toggle%
+	hotkey, *k, %AK_toggle%
+	hotkey, *k up, %AK_toggle%
+	hotkey, *l, %AK_toggle%
+	hotkey, *l up, %AK_toggle%
+	hotkey, *;, %AK_toggle%
+	hotkey, *; up, %AK_toggle%
+	hotkey, *h, %AK_toggle%
+	hotkey, *h up, %AK_toggle%
+	hotkey, *m, %AK_toggle%
+	hotkey, *m up, %AK_toggle%
+	hotkey, *n, %AK_toggle%
+	hotkey, *n up, %AK_toggle%
+	hotkey, *`,, %AK_toggle%
+	hotkey, *`, up, %AK_toggle%
 return
 
 ; When should ctrl+{up} send multiple up/down?
 ; TODO: should let user decide which modifier has this behavior
-; TODO: 
 AllowMultiarrow() {
 	SetTitleMatchMode, 2
 	If WinActive("SciTE4AutoHotkey") {
@@ -91,47 +88,47 @@ AllowMultiarrow() {
 
 ; get states of modifiers and stuff them into variables shiftstate, ctrlstate, altstate
 KeyStates:
-GetKeyState, shiftstate, Shift
-GetKeyState, ctrlstate, Ctrl
-GetKeyState, altstate, Alt
-; from key states, concat the corresponding AHK modifiers, + ^ !,
-; e.g., shiftstate=altstate=D ==> KSM = +!
-KeyStatesFaked:
-KSM = 
-if shiftstate = D
-	KSM = +
-if ctrlstate = D
-	KSM = %KSM%^
-if altstate = D
-	KSM = %KSM%!
+	GetKeyState, shiftstate, Shift
+	GetKeyState, ctrlstate, Ctrl
+	GetKeyState, altstate, Alt
+	GetKeyState, capstate, CapsLock, P
+	; from key states, concat the corresponding AHK modifiers, + ^ !,
+	; e.g., shiftstate=altstate=D ==> KSM = +!
+	KeyStatesFaked:
+	KSM = 
+	if shiftstate = D
+		KSM = +
+	if ctrlstate = D
+		KSM = %KSM%^
+	else {
+		; SC163 is the 'fn' key on many laptops
+		GetKeyState, ctrlstate, SC163
+		if ctrlstate = D
+			KSM = %KSM%^
+	}
+	if altstate = D
+		KSM = %KSM%!
 return
 
 Backspace:
-gosub KeyStates
 Send, %KSM%{BACKSPACE Down}
 return
 BackspaceR:
-gosub KeyStates
 Send, %KSM%{BACKSPACE Up}
 return
 Home:
-gosub KeyStates
 Send, %KSM%{HOME Down}
 return
 HomeR:
-gosub KeyStates
 Send, %KSM%{HOME Up}
 return
 End:
-gosub KeyStates
 Send, %KSM%{END Down}
 return
 EndR:
-gosub KeyStates
 Send, %KSM%{END Up}
 return
 Up:
-gosub KeyStates
 if (ctrlstate = "D" and AllowMultiarrow())
 {
 	SetKeyDelay, -1
@@ -143,11 +140,9 @@ else
 	Send, %KSM%{UP Down}
 return
 UpR:
-gosub KeyStates
 Send, %KSM%{UP Up}
 return
 Down:
-gosub KeyStates
 if (ctrlstate = "D" and AllowMultiarrow())
 {
 	SetKeyDelay, -1
@@ -159,46 +154,76 @@ else
 	Send, %KSM%{DOWN Down}
 return
 DownR:
-gosub KeyStates
 Send, %KSM%{DOWN Up}
 return
 Right:
-gosub KeyStates
 Send, %KSM%{RIGHT Down}
 return
 RightR:
-gosub KeyStates
 Send, %KSM%{RIGHT Up}
 return
 Left:
-gosub KeyStates
 Send, %KSM%{LEFT Down}
 return
 LeftR:
-gosub KeyStates
 Send, %KSM%{LEFT Up}
 return
 Del:
-gosub KeyStates
 Send, %KSM%{DELETE Down}
 return
 DelR:
-gosub KeyStates
 Send, %KSM%{DELETE Up}
 return
 PageUp:
-gosub KeyStates
 Send, %KSM%{PGUP Down}
 return
 PageUpR:
-gosub KeyStates
 Send, %KSM%{PGUP Up}
 return
 PageDn:
-gosub KeyStates
 Send, %KSM%{PGDN Down}
 return
 PageDnR:
-gosub KeyStates
 Send, %KSM%{PGDN Up}
+return
+EscD:
+Send, %KSM%{Esc Down}
+return
+EscR:
+Send, %KSM%{Esc Up}
+return
+
+
+Home_:
+HomeR_:
+End_:
+EndR_:
+Up_:
+UpR_:
+Left_:
+LeftR_:
+Down_:
+DownR_:
+Right_:
+RightR_:
+Backspace_:
+BackspaceR_:
+Del_:
+DelR_:
+PageUp_:
+PageUpR_:
+PageDn_:
+PageDnR_:
+EscD_:
+EscR_:
+	gosub KeyStates
+	if (capstate = "U" && ForceHeld = 0) {
+		; Something went wrong, but we'll bail out here
+		original_key := RegExReplace(A_ThisHotkey, "(\*)")
+		ToolTipTime(QuotedVar("original_key") . " " .  QuotedVar("A_ThisHotkey") . " " . QuotedVar("A_ThisLabel"))
+		gosub HandleCapsUp
+		send, {%original_key%}
+	}
+	NextLabel := SubStr(A_ThisLabel, 1, StrLen(A_ThisLabel) - 1)
+	gosub %NextLabel%
 return
