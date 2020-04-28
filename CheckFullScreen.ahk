@@ -1,3 +1,20 @@
+;--------------------------------------------------------------------------
+; Setup the program-specific scripts.  A timer is run that checks whether
+; the foreground app has changed, and if so, it kills the old specific
+; ahk and loads in the new one.
+
+; The last app-specific script loaded
+HoldLastScriptFile := ""
+; The current app-specific script loaded
+LastScriptFile := "foo.ahk"
+; Full-screen toggle. 
+; 0: not full-screen
+; 1: full-screen
+; other: not yet known
+fs := 2
+
+SetTimer, CheckFullScreen, 50
+
 ;  --------------------------------------------------------------------------
 ; CheckFullScreen disables certain macros for fullscreen games and also launches specific ahk files
 ; based on the new current process
@@ -9,24 +26,6 @@ CheckFullScreen:
 		func := "WindowChanged"
 		if (IsFunc(func))
 			%func%(title)
-
-		; these windows need to go away.  kill em!
-		;~ if (lastTitle == "Purchase Reminder")
-		;~ {
-			;~ Send, {tab}{enter}
-		;~ }
-		;~ else if (lastTitle == "Please purchase WinRAR license")
-		;~ {
-			;~ Send, {tab}{tab}{enter}
-		;~ }
-		;~ else if (lastTitle == "Automatic Updates")
-		;~ {
-			;~ Send, !l
-		;~ }
-		;~ else if (lastTitle == "Compare It!")
-		;~ {
-			;~ Send, {enter}
-		;~ }
 	}
 
 	;////////////////////////////////////////////////////////////////////////
@@ -82,11 +81,12 @@ FullScreenChanged(fs) {
 		Full_Only := "On"
 		Windowed_Only := "Off"
 	}
-	Hotkey, Alt & LButton, %Windowed_Only%
-	Hotkey, Alt & RButton, %Windowed_Only%
-	Hotkey, Alt & MButton, %Windowed_Only%
-	Hotkey, Alt & WheelDown, %Windowed_Only%
-	Hotkey, Alt & WheelUp, %Windowed_Only%
+
+	Hotkey, Alt & LButton, %Windowed_Only%,, UseErrorLevel
+	Hotkey, Alt & RButton, %Windowed_Only%,, UseErrorLevel
+	Hotkey, Alt & MButton, %Windowed_Only%,, UseErrorLevel
+	Hotkey, Alt & WheelDown, %Windowed_Only%,, UseErrorLevel
+	Hotkey, Alt & WheelUp, %Windowed_Only%,, UseErrorLevel
 	Hotkey, ^!e, %Windowed_Only%
 	;Hotkey, ^!a, %Windowed_Only%
 	Hotkey, ^!r, %Windowed_Only%

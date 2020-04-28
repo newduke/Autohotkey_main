@@ -180,20 +180,42 @@ IfWinActive, ahk_class Shell_TrayWnd
 {
     WinSet AlwaysOnTop, Toggle, %ActiveWin%
 }
-else IfWinActive, ahk_class MozillaWindowClass
+else if (0 && WinActive("ahk_class MozillaWindowClass"))
 {
+    if (instr( Title, "img2tab")) {
+        Send, ^{tab}
+        return
+    }
+    Click, Right
+    sleep, 1000
+    sendinput {up}{up}{right}{up}
+    sleep, 1000
+    send {enter}
+    sendinput ^{pgup}^w^{pgdn}
+    ;sendinput {down}
+
+    return
+
     ; In firefox, open images in tab and move to next tab.
     WinGetTitle, Title, A
+    CoordMode, Pixel, Client 
     if (instr( Title, "Pictures linked from")) {
         Send, ^{tab}
         return
     }
-    XP := 428
-    yP := 86
+    XP := 427
+    YP := 89
+    
     PixelGetColor, OutputVar, %XP%, %YP%
     DebugTip(OutputVar)
+    if (OutputVar != 0x00B800) {
+        Sleep, 1
+        XP := 425
+        YP := 82
+        PixelGetColor, OutputVar, %XP%, %YP%
+    }
     if (OutputVar = 0x00B800) {
-        CoordMode, Mouse, Window
+        CoordMode, Mouse, Client
         MouseGetPos, X, Y
         Click %XP%, %YP%
         sleep, 200
@@ -217,6 +239,11 @@ Gesture_MButton:
         G_ToolTip(vol)
         return        
     }
+
+    MouseGetPos,,,KDE_id
+    WinActivate, ahk_id %KDE_id%
+    WinWaitActive,ahk_id %KDE_id%,,.1
+
     if WinActive("ahk_class CabinetWClass")
         send, ^w
     else
@@ -225,23 +252,23 @@ return
 
 Gesture_LButton:
 ; ; WIP ---------------------------------------------------------------------
-IfWinActive, ahk_class MozillaWindowClass
+if (0 && WinActive("ahk_class MozillaWindowClass"))
 {
-Clipboard =
-Click right
-;~ sleep 1000
-send, a
-ClipWait, .2
-RealLink := InStr(Clipboard, "http://",false, 3)
-DebugTip(Clipboard . "`r`n" . RealLink)
-sleep 1000
-if (RealLink > 0) {
-    RealLink := SubStr(Clipboard, RealLink)
-    send, !d^v{Blind}!{enter}^{tab}
-} else {
-    ;~ send, {mbutton}
-}
-return
+    Clipboard =
+    Click right
+    ;~ sleep 1000
+    send, a
+    ClipWait, .2
+    RealLink := InStr(Clipboard, "http://",false, 3)
+    DebugTip(Clipboard . "`r`n" . RealLink)
+    sleep 1000
+    if (RealLink > 0) {
+        RealLink := SubStr(Clipboard, RealLink)
+        send, !d^v{Blind}!{enter}^{tab}
+    } else {
+        ;~ send, {mbutton}
+    }
+    return
 }
 ;  --------------------------------------------------------------------------
 #If
@@ -273,6 +300,12 @@ Gesture_WheelUp:
     }
     if m_gesture = _U
     {
+        if WinActive("ahk_exe Spotify.exe") 
+        {
+            Send, ^{up}
+            return
+        }
+
         Send {Volume_Up 2}
         Sleep 1
         SoundGet, vol
@@ -315,6 +348,11 @@ Gesture_WheelDown:
     }
     if m_gesture = _U
     {
+        if WinActive("ahk_exe Spotify.exe") 
+        {
+            Send, ^{down}
+            return
+        }
         Send {Volume_Down 2}
         Sleep 1       
         SoundGet, vol
@@ -383,7 +421,7 @@ return
 
 ; Implement XButton2 as a prefix key while also allowing the
 ; duration of the press to decide its final (default) effect.
-;XButton2::
+XButton2::
     IfWinActive, ahk_class MozillaWindowClass
     {
 	;send,!b

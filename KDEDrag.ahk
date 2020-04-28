@@ -34,6 +34,8 @@ CoordMode,Mouse
 return
 */
 
+DoubleAlt := False ; Re-initialize DoubleAlt.
+
 ; from key states, concat the corresponding AHK modifiers, + ^ !,
 ; e.g., shiftstate=altstate=D ==> KSM = +!
 KeyStates() 
@@ -51,9 +53,13 @@ KeyStates()
 	return KSM
 }
 
+; I decided I liked being able to alt + click, so I use double-alt + click to access native
+; alt + click behavior.
+#If !DoubleAlt and !WinActive("ahk_class MultitaskingViewFrame")
+
 Alt & LButton::
 KSM := KeyStates()
-if (KSM != "!")
+if (KSM != "!" or WinActive("ahk_class MultitaskingViewFrame"))
 {
 	; fake the action
 	MouseClick, Left,,,,,D
@@ -87,7 +93,7 @@ Loop
 	KDE_WinX2 := (KDE_WinX1 + KDE_X2) ; Apply this offset to the window position.
 	KDE_WinY2 := (KDE_WinY1 + KDE_Y2)
 	WinMove,ahk_id %KDE_id%,,%KDE_WinX2%,%KDE_WinY2% ; Move the window to the new position.
-	ToolTip, ( %KDE_WinX2% `, %KDE_WinY2% )
+	;ToolTip, ( %KDE_WinX2% `, %KDE_WinY2% )
 }
 ToolTip
 return
@@ -163,34 +169,34 @@ return
 ; like an extra measure of security for
 ; an operation like this.
 Alt & MButton::
-If DoubleAlt
-{
+	If DoubleAlt
+	{
+		MouseGetPos,,,KDE_id
+		WinClose,ahk_id %KDE_id%
+		DoubleAlt := false
+		return
+	}
 	MouseGetPos,,,KDE_id
-	WinClose,ahk_id %KDE_id%
-	DoubleAlt := false
-	return
-}
-MouseGetPos,,,KDE_id
-WinSet,Bottom,,ahk_id %KDE_id%
-;WinSet,Bottom,,Program Manager
+	WinSet,Bottom,,ahk_id %KDE_id%
+	;WinSet,Bottom,,Program Manager
 return
 
 Alt & WheelDown::AltTab
 Alt & WheelUp::ShiftAltTab
-return
+#If
 
 ; This code detects "double-clicks" of
 ; the Alt key.
-/*
 ~Alt::
-DoubleAlt := false ; Re-initialize DoubleAlt.
-; Uncomment this line if you still want to use the Alt key to activate a program's 
-; menu bar. Note that even without this enabled, menu shortcuts such as Alt+F will
-; still operate correctly:
-;  Send,{Alt} 
-KeyWait,Alt,D T0.6 ; ... and the next press.
-If Errorlevel ; If it never comes or takes too long, DoubleAlt remains false.
-	return
-DoubleAlt := true ; Otherwise, it's true until Alt is released (activating this hotkey again).
+	DoubleAlt := False ; Re-initialize DoubleAlt.
+	; Uncomment this line if you still want to use the Alt key to activate a program's 
+	; menu bar. Note that even without this enabled, menu shortcuts such as Alt+F will
+	; still operate correctly:
+	;  Send,{Alt} 
+	KeyWait,Alt,D T0.6 ; ... and the next press.
+	If Errorlevel ; If it never comes or takes too long, DoubleAlt remains false.
+		return
+	DoubleAlt := True ; Otherwise, it's true until Alt is released (activating this hotkey again).
+	KeyWait,Alt,U T20 ; ... and the next press.
+	DoubleAlt := False ; reset DoubleAlt when Alt is release (or times out)
 return
-*/

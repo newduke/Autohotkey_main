@@ -15,6 +15,11 @@
 ::<?<?::
 	Send, <?php{enter} ?>{left 3}
 return
+
+:C:#DATE::
+	SendRaw, % "#" . A_YYYY . "-" . A_MM . "-" . A_DD
+return
+
 :C:DATE::
 	send, % A_DD . " " . A_MMM . " " . A_YYYY
 return
