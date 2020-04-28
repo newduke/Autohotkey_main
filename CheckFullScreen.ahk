@@ -3,17 +3,6 @@
 ; the foreground app has changed, and if so, it kills the old specific
 ; ahk and loads in the new one.
 
-; The last app-specific script loaded
-HoldLastScriptFile := ""
-; The current app-specific script loaded
-LastScriptFile := "foo.ahk"
-; Full-screen toggle. 
-; 0: not full-screen
-; 1: full-screen
-; other: not yet known
-fs := 2
-
-SetTimer, CheckFullScreen, 50
 
 ;  --------------------------------------------------------------------------
 ; CheckFullScreen disables certain macros for fullscreen games and also launches specific ahk files
