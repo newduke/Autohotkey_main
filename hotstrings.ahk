@@ -10,8 +10,10 @@
 ::new@::newduke@gmail.com
 ::1184::1184 Florida Street, San Francisco, CA 94110
 ::1550::1550 5th St, Oakland, CA 94607
+::285*::2853 Sacrament St, Berkeley, CA 94702
+::206*::206-289-0213
 ::jauth::author: Jordan Weitz (newduke@gmail.com)
-::cliche::cliché 
+::cliche::clichï¿½ 
 ::<?<?::
 	Send, <?php{enter} ?>{left 3}
 return

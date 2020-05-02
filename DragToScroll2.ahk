@@ -35,7 +35,7 @@ Setting("ScrollDisabled", false)
 ; The chosen hotkey button
 ; Should work with pretty much any button, though 
 ; mouse or KB special keys (ctrl, alt, etc) are preferred.
-Setting("Button", "RButton")                
+Setting("Button", "XButton2")
 
 ; Delay time before drag starts
 ; You must click and release "Button" before this time;
