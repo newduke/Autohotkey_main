@@ -8,6 +8,7 @@
 
 #MaxHotkeysPerInterval 200
 global CapsHeld := 0
+global KSM := ""
 
 hotkey, *u, Home_
 hotkey, *u up, HomeR_

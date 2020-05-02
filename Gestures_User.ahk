@@ -333,6 +333,8 @@ Gesture_WheelUp:
     }
     if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS"))
         Send ^{PgUp}
+    else if (WinActive("ahk_exe Code.exe"))
+        Send !{Left}
     else if WinActive("ahk_class ShImgVw:CPreviewWnd")
         Send {Left}
     else
@@ -380,6 +382,8 @@ Gesture_WheelDown:
     }
     if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS"))
         Send ^{PgDn}
+    else if (WinActive("ahk_exe Code.exe"))
+        Send !{Right}
     else if WinActive("ahk_class ShImgVw:CPreviewWnd")
         Send {Right}
     else

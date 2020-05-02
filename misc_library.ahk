@@ -18,7 +18,7 @@ TrueFalse(bool) {
 	return "false"
 }
 QuotedVar(var) {
-	return % var . ": " . %var%
+	return % var . ": '" . %var% . "'"
 }
 Quoted(string){
 	string = "%string%"

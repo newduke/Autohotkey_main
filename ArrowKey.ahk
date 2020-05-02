@@ -39,10 +39,11 @@ HandleCapsUp:
 	critical_caps := 0
 goto ToggleIt
 
-ScrollLock::
-	CapsHeld := 0
-	;Send, {ScrollLock}
-goto ToggleIt
+; Is this needed?
+; ScrollLock::
+; 	CapsHeld := 0
+; 	;Send, {ScrollLock}
+; goto ToggleIt
 
 ToggleIt:
 	If (CapsHeld || ForceHeld) {
@@ -80,59 +81,64 @@ return
 ; TODO: should let user decide which modifier has this behavior
 AllowMultiarrow() {
 	SetTitleMatchMode, 2
-	If WinActive("SciTE4AutoHotkey") {
+	If WinActive("ahk_exe Code.exe") {
 		return true
 	}
 	return false
 }
 
-; get states of modifiers and stuff them into variables shiftstate, ctrlstate, altstate
+; get states of modifiers and stuff them into variables shiftstate, ctrlstate, altstate, winstate
 KeyStates:
-	GetKeyState, shiftstate, Shift
-	GetKeyState, ctrlstate, Ctrl
-	GetKeyState, altstate, Alt
-	GetKeyState, capstate, CapsLock, P
-	; from key states, concat the corresponding AHK modifiers, + ^ !,
-	; e.g., shiftstate=altstate=D ==> KSM = +!
-	KeyStatesFaked:
-	KSM = 
-	if shiftstate = D
-		KSM = +
-	if ctrlstate = D
-		KSM = %KSM%^
-	else {
-		; SC163 is the 'fn' key on many laptops
-		GetKeyState, ctrlstate, SC163
-		if ctrlstate = D
-			KSM = %KSM%^
-	}
-	if altstate = D
-		KSM = %KSM%!
+	shiftstate := GetKeyState("Shift")
+	ctrlstate := GetKeyState("Ctrl")
+	altstate := GetKeyState("Alt")
+	winstate := GetKeyState("LWin")
+	capstate := GetKeyState("CapsLock", "P")
+	; fall through
+; from key states, concat the corresponding AHK modifiers, + ^ !,
+; e.g., shiftstate=altstate=1 ==> KSM = +!
+KeyStatesFaked:
+	KSM := ""
+	if shiftstate
+		KSM := "+"
+	if ctrlstate
+		KSM := KSM . "^"
+	; else {
+	; 	; SC163 is the 'fn' key on many laptops
+	; 	ctrlstate := GetKeyState("SC163")
+	; 	if ctrlstate
+	;		KSM := KSM . "^"
+	; }
+	if altstate
+		KSM := KSM . "!"
+	if winstate
+		KSM := KSM . "#"
 return
 
 Backspace:
-Send, %KSM%{BACKSPACE Down}
+	Send, %KSM%{BACKSPACE Down}
 return
 BackspaceR:
-Send, %KSM%{BACKSPACE Up}
+	Send, %KSM%{BACKSPACE Up}
 return
 Home:
-Send, %KSM%{HOME Down}
+	Send, %KSM%{HOME Down}
 return
 HomeR:
-Send, %KSM%{HOME Up}
+	Send, %KSM%{HOME Up}
 return
 End:
-Send, %KSM%{END Down}
+	Send, %KSM%{END Down}
 return
 EndR:
-Send, %KSM%{END Up}
+	Send, %KSM%{END Up}
 return
+
 Up:
-if (ctrlstate = "D" and AllowMultiarrow())
+if (ctrlstate and AllowMultiarrow())
 {
 	SetKeyDelay, -1
-	ctrlstate = U
+	ctrlstate := false
 	gosub KeyStatesFaked
 	Send, %KSM%{UP 6}
 } 
@@ -143,10 +149,10 @@ UpR:
 Send, %KSM%{UP Up}
 return
 Down:
-if (ctrlstate = "D" and AllowMultiarrow())
+if (ctrlstate and AllowMultiarrow())
 {
 	SetKeyDelay, -1
-	ctrlstate = U
+	ctrlstate := false
 	gosub KeyStatesFaked
 	Send, %KSM%{DOWN 6}
 } 
@@ -154,43 +160,74 @@ else
 	Send, %KSM%{DOWN Down}
 return
 DownR:
-Send, %KSM%{DOWN Up}
+	Send, %KSM%{DOWN Up}
 return
-Right:
-Send, %KSM%{RIGHT Down}
-return
-RightR:
-Send, %KSM%{RIGHT Up}
-return
+
+leftAction() {
+	gosub KeyStates
+	Send, %KSM%{LEFT Down}
+}
 Left:
-Send, %KSM%{LEFT Down}
+	RapidFire(200, 10, original_key, lHeld, "leftAction")
 return
 LeftR:
-Send, %KSM%{LEFT Up}
+	lHeld := 0
+	Send, %KSM%{LEFT Up}
 return
+rightAction() {
+	gosub KeyStates
+	Send, %KSM%{RIGHT Down}
+}
+Right:
+	RapidFire(200, 10, original_key, rHeld, "rightAction")
+return
+RightR:
+	rHeld := 0
+	Send, %KSM%{RIGHT Up}
+return
+
+; While key is held for more than long ms, repeat action every short ms.
+; mutex guards this block for reentry.
+RapidFire(long, short, key, mutex, action) {
+	if mutex = 1
+		return
+	mutex := 1
+	action.()
+	longHold := A_TickCount + long
+	Loop {
+		Sleep, %short%
+		rapidPressed := GetKeyState(key, "P")
+		If not rapidPressed
+			Break
+		if (A_TickCount < longHold)
+			Continue
+		action.()
+	}
+	mutex := 0
+}
 Del:
-Send, %KSM%{DELETE Down}
+	Send, %KSM%{DELETE Down}
 return
 DelR:
-Send, %KSM%{DELETE Up}
+	Send, %KSM%{DELETE Up}
 return
 PageUp:
-Send, %KSM%{PGUP Down}
+	Send, %KSM%{PGUP Down}
 return
 PageUpR:
-Send, %KSM%{PGUP Up}
+	Send, %KSM%{PGUP Up}
 return
 PageDn:
-Send, %KSM%{PGDN Down}
+	Send, %KSM%{PGDN Down}
 return
 PageDnR:
-Send, %KSM%{PGDN Up}
+	Send, %KSM%{PGDN Up}
 return
 EscD:
-Send, %KSM%{Esc Down}
+	Send, %KSM%{Esc Down}
 return
 EscR:
-Send, %KSM%{Esc Up}
+	Send, %KSM%{Esc Up}
 return
 
 
@@ -217,6 +254,7 @@ PageDnR_:
 EscD_:
 EscR_:
 	gosub KeyStates
+	original_key := RegExReplace(A_ThisHotkey, "(\*)")
 	if (capstate = "U" && ForceHeld = 0) {
 		; Something went wrong, but we'll bail out here
 		original_key := RegExReplace(A_ThisHotkey, "(\*)")
