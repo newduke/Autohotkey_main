@@ -80,6 +80,7 @@ return
 ; When should ctrl+{up} send multiple up/down?
 ; TODO: should let user decide which modifier has this behavior
 AllowMultiarrow() {
+	return true
 	SetTitleMatchMode, 2
 	If WinActive("ahk_exe Code.exe") {
 		return true

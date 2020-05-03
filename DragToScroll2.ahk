@@ -74,7 +74,7 @@ Setting("ScrollMethodY", mWheelKey)
 ; showing more of the document below. This behavior is the inverse of 
 ; scrolling up, where you see more of the document above.
 ; The invert flag switches the drag to the "scroll" behavior
-Setting("InvertDrag", true)
+Setting("InvertDrag", false)
 
 ; Edge Scrolling
 ; allows you to hover over a window edge

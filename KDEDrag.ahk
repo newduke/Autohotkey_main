@@ -17,22 +17,6 @@
 ;
 ; You can optionally release Alt after the first
 ; click rather than holding it down the whole time.
-/*
-If A_AhkVersion < 1.0.25.07
-{
-	MsgBox,20,,This script may not work properly with your version of AutoHotkey. Continue?
-	IfMsgBox,No
-	ExitApp
-}
-
-; This is the setting that runs smoothest on my
-; system. Depending on your video card and cpu
-; power, you may want to raise or lower this value.
-SetWinDelay,2
-
-CoordMode,Mouse
-return
-*/
 
 DoubleAlt := False ; Re-initialize DoubleAlt.
 
@@ -121,14 +105,23 @@ If KDE_Win
 WinGetPos,KDE_WinX1,KDE_WinY1,KDE_WinW,KDE_WinH,ahk_id %KDE_id%
 ; Define the window region the mouse is currently in.
 ; The four regions are Up and Left, Up and Right, Down and Left, Down and Right.
-If (KDE_X1 < KDE_WinX1 + KDE_WinW / 2)
-	KDE_WinLeft := true
-Else
-	KDE_WinLeft := false
-If (KDE_Y1 < KDE_WinY1 + KDE_WinH / 2)
-	KDE_WinUp := true
-Else
-	KDE_WinUp := false
+KDE_ZoneX := 0
+if (KDE_X1 < KDE_WinX1 + KDE_WinW / 3)
+	KDE_ZoneX := -1
+else if (KDE_X1 > KDE_WinX1 + 2 * KDE_WinW / 3)
+	KDE_ZoneX := 1
+KDE_ZoneY := 0
+if (KDE_Y1 < KDE_WinY1 + KDE_WinH / 3)
+	KDE_ZoneY := -1
+else if (KDE_Y1 > KDE_WinY1 + 2 * KDE_WinH / 3)
+	KDE_ZoneY := 1
+if (KDE_ZoneX = 0 and KDE_ZoneY = 0) {
+	KDE_OrigWinW := KDE_WinW
+	KDE_OrigWinH := KDE_WinH
+	KDE_OrigWinX1 := KDE_WinX1
+	KDE_OrigWinY1 := KDE_WinY1
+}
+
 Loop
 {
 	GetKeyState,KDE_Button,RButton,P ; Break if LButton has been released.
@@ -140,27 +133,66 @@ Loop
 	KDE_X2 -= KDE_X1 ; Obtain an offset from the initial mouse position.
 	KDE_Y2 -= KDE_Y1
 	; Then, act according to the defined region.
-	If KDE_WinLeft
+	If (KDE_ZoneX = -1)
 	{
 		; Reverse and apply the offset to the size, and correct for the skewed position.
 		KDE_WinX1 += KDE_X2
 		KDE_WinW -= KDE_X2
 	}
-	Else
+	Else If (KDE_ZoneX = 1)
 		KDE_WinW += KDE_X2 ; Apply the offset to the size.
-	If KDE_WinUp
+	If (KDE_ZoneY = -1)
 	{
 		; Reverse and apply, correct the position.
 		KDE_WinY1 += KDE_Y2
 		KDE_WinH -= KDE_Y2
 	}
-	Else
+	Else If (KDE_ZoneY = 1)
 		KDE_WinH += KDE_Y2 ; Apply the offset.
-	; Finally, apply all the changes to the window.
-	WinMove,ahk_id %KDE_id%,,%KDE_WinX1%,%KDE_WinY1%,%KDE_WinW%,%KDE_WinH%
-	KDE_X1 := (KDE_X2 + KDE_X1) ; Reset the initial position for the next iteration.
-	KDE_Y1 := (KDE_Y2 + KDE_Y1)
-	ToolTip, ( %KDE_WinX1% `, %KDE_WinY1% ) x ( %KDE_WinW% `, %KDE_WinH% )
+	
+	; For center zone, resize to special zones (corners, sides)
+	if (KDE_ZoneX = 0 and KDE_ZoneY = 0) {
+		CurrentMon := 0
+		Loop {
+			CurrentMon := CurrentMon + 1
+			SysGet, Monitor, MonitorWorkArea, %CurrentMon%
+			if (MonitorLeft = "")
+				break
+			if (KDE_X1 >= MonitorLeft and KDE_X1 <= MonitorRight and KDE_Y1 >= MonitorTop and KDE_Y1 <= MonitorBottom) {
+				break
+			}
+		}
+		KDE_WinX1 := MonitorLeft
+		KDE_WinX2 := MonitorRight
+		KDE_WinY1 := MonitorTop
+		KDE_WinY2 := MonitorBottom
+		CenterX := KDE_WinX1 + (KDE_WinX2 - KDE_WinX1)*.5
+		CenterY := KDE_WinY1 + (KDE_WinY2 - KDE_WinY1)*.5
+		Sensitivity := 50
+		if (KDE_X2 > Sensitivity) {
+			KDE_WinX1 := CenterX
+		} else if (KDE_X2 < -Sensitivity) {
+			KDE_WinX2 := CenterX
+		}
+		if (KDE_Y2 > Sensitivity) {
+			KDE_WinY1 := CenterY
+		} else if (KDE_Y2 < -Sensitivity) {
+			KDE_WinY2 := CenterY
+		}
+		if (KDE_X2 < Sensitivity and KDE_X2 > -Sensitivity and KDE_Y2 < Sensitivity and KDE_Y2 > -Sensitivity) {
+			KDE_WinX1 := KDE_OrigWinX1
+			KDE_WinY1 := KDE_OrigWinY1
+			KDE_WinX2 := KDE_OrigWinX1 + KDE_OrigWinW
+			KDE_WinY2 := KDE_OrigWinY1 + KDE_OrigWinH
+		}
+		WinMove,ahk_id %KDE_id%,,%KDE_WinX1%,%KDE_WinY1%,KDE_WinX2 - KDE_WinX1,(KDE_WinY2 - KDE_WinY1)
+	} else {
+		; Finally, apply all the changes to the window.
+		WinMove,ahk_id %KDE_id%,,%KDE_WinX1%,%KDE_WinY1%,%KDE_WinW%,%KDE_WinH%
+		KDE_X1 := (KDE_X2 + KDE_X1) ; Reset the initial position for the next iteration.
+		KDE_Y1 := (KDE_Y2 + KDE_Y1)
+		ToolTip, ( %KDE_WinX1% `, %KDE_WinY1% ) x ( %KDE_WinW% `, %KDE_WinH% )
+	}
 }
 ToolTip
 return
@@ -178,7 +210,6 @@ Alt & MButton::
 	}
 	MouseGetPos,,,KDE_id
 	WinSet,Bottom,,ahk_id %KDE_id%
-	;WinSet,Bottom,,Program Manager
 return
 
 Alt & WheelDown::AltTab
