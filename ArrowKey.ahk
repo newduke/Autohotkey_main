@@ -1,3 +1,4 @@
+global ctrlstate
 #include ArrowKeyS.ahk
 return
 
@@ -135,37 +136,44 @@ EndR:
 	Send, %KSM%{END Up}
 return
 
+upAction() {
+	if (ctrlstate and AllowMultiarrow())
+	{
+		SetKeyDelay, -1
+		ctrlstate := false
+		gosub KeyStatesFaked
+		Send, %KSM%{UP 6}
+	} 
+	else
+		Send, %KSM%{UP Down}
+	}
 Up:
-if (ctrlstate and AllowMultiarrow())
-{
-	SetKeyDelay, -1
-	ctrlstate := false
-	gosub KeyStatesFaked
-	Send, %KSM%{UP 6}
-} 
-else
-	Send, %KSM%{UP Down}
+	RapidFire(250, 10, original_key, uHeld, "upAction")
 return
 UpR:
-Send, %KSM%{UP Up}
+	uHeld := 0
+	Send, %KSM%{LEFT Up}
 return
+downAction() {
+	if (ctrlstate and AllowMultiarrow())
+	{
+		SetKeyDelay, -1
+		ctrlstate := false
+		gosub KeyStatesFaked
+		Send, %KSM%{DOWN 6}
+	} 
+	else
+		Send, %KSM%{DOWN Down}
+	}
 Down:
-if (ctrlstate and AllowMultiarrow())
-{
-	SetKeyDelay, -1
-	ctrlstate := false
-	gosub KeyStatesFaked
-	Send, %KSM%{DOWN 6}
-} 
-else
-	Send, %KSM%{DOWN Down}
+	RapidFire(250, 10, original_key, dHeld, "downAction")
 return
 DownR:
-	Send, %KSM%{DOWN Up}
+	dHeld := 0
+	Send, %KSM%{LEFT Up}
 return
 
 leftAction() {
-	gosub KeyStates
 	Send, %KSM%{LEFT Down}
 }
 Left:
@@ -176,7 +184,6 @@ LeftR:
 	Send, %KSM%{LEFT Up}
 return
 rightAction() {
-	gosub KeyStates
 	Send, %KSM%{RIGHT Down}
 }
 Right:
@@ -189,7 +196,7 @@ return
 
 ; While key is held for more than long ms, repeat action every short ms.
 ; mutex guards this block for reentry.
-RapidFire(long, short, key, mutex, action) {
+RapidFire(long, short, key, ByRef mutex, action) {
 	if mutex = 1
 		return
 	mutex := 1
@@ -202,6 +209,7 @@ RapidFire(long, short, key, mutex, action) {
 			Break
 		if (A_TickCount < longHold)
 			Continue
+		gosub KeyStates
 		action.()
 	}
 	mutex := 0

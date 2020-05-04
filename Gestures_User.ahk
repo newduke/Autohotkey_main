@@ -322,7 +322,7 @@ Gesture_WheelUp:
     }
     if m_gesture = _D
     {
-        send, #{pgup}
+        send, ^#{Left}
         return
     }
     XButton2&WheelUp:
@@ -371,7 +371,7 @@ Gesture_WheelDown:
     }
     if m_gesture = _D
     {
-        send, #{pgdn}
+        send, ^#{Right}
         return
     }
     XButton2&WheelDown:
