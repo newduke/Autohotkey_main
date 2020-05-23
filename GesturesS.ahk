@@ -111,6 +111,7 @@ Menu, Tray, Tip, Mouse Gestures
 Menu, Tray, NoStandard
 Menu, Tray, Add, &Open      , TrayMenu_Open
 Menu, Tray, Add, &Help      , TrayMenu_Help
+Menu, Tray, Add, &Debug      , TrayMenu_Debug
 Menu, Tray, Add
 Menu, Tray, Add, &Reload    , TrayMenu_Reload
 Menu, Tray, Add, &Suspend   , TrayMenu_Suspend

@@ -31,6 +31,9 @@ return
 TrayMenu_Reload:
     Reload
 return
+TrayMenu_Debug:
+    ListLines
+return
 TrayMenu_Suspend:
     gosub ToggleGestureSuspend
 return

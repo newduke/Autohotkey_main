@@ -17,12 +17,13 @@ Gesture_L_D_U_R = {f11}
 
 ; Down:         Keyboard inserts
 Gesture_D = {Enter}
+Gesture_D_U = ^r
 Gesture_L_D_R = ^x
 Gesture_L_U_R = ^c
 Gesture_U_R_D = ^v
 
 ; Left, Up:     Go up one level in explorer.
-Gesture_L_U = !{Up}
+; Gesture_L_U = !{Up}
 
 ; Up, ...:      Control media player.
 GestureName_U_L = Media_Prev
@@ -75,46 +76,46 @@ GroupAdd, WinCloseGroup, ahk_class AutoHotkey
  */
 return
 
-; Hold XButton1 to show the Alt+Tab dialog.  Release to switch applications.
-; With the Aero task-switcher, one can also click the thumbnail to switch.
-*XButton1::
-    if m_WaitForRelease ; Holding gesture button.
-    {
-        m_ScrolledWheel := true
-        m_ExitLoop := true
-        Send {Media_Next}
-        return
-    }
-    Send {Blind}{Alt Down}{Tab}
-    MouseGetPos, x, y
-    if (x < 0) ; Put it on the appropriate monitor, assumes only two monitors,
-    {          ; where the secondary monitor is to the left of the primary.
-        WinWait, ahk_class TaskSwitcherWnd,, 0.2
-        if !ErrorLevel
-        {
-            SysGet, Mon2, MonitorWorkArea, 1
-            WinGetPos, x, y, w, h
-            x := Mon2Left+(Mon2Right-Mon2Left-w)//2
-            y := Mon2Top+(Mon2Bottom-Mon2Top-h)//2
-            WinMove, x, y
-            ifWinExist, ahk_class TaskSwitcherOverlayWnd
-                WinMove, x, y
-        }
-    }
-    KeyWait, XButton1
-    Send {Blind}{Alt Up}
-*XButton1 Up::
-    return
+; ; Hold XButton1 to show the Alt+Tab dialog.  Release to switch applications.
+; ; With the Aero task-switcher, one can also click the thumbnail to switch.
+; *XButton1::
+;     if m_WaitForRelease ; Holding gesture button.
+;     {
+;         m_ScrolledWheel := true
+;         m_ExitLoop := true
+;         Send {Media_Next}
+;         return
+;     }
+;     Send {Blind}{Alt Down}{Tab}
+;     MouseGetPos, x, y
+;     if (x < 0) ; Put it on the appropriate monitor, assumes only two monitors,
+;     {          ; where the secondary monitor is to the left of the primary.
+;         WinWait, ahk_class TaskSwitcherWnd,, 0.2
+;         if !ErrorLevel
+;         {
+;             SysGet, Mon2, MonitorWorkArea, 1
+;             WinGetPos, x, y, w, h
+;             x := Mon2Left+(Mon2Right-Mon2Left-w)//2
+;             y := Mon2Top+(Mon2Bottom-Mon2Top-h)//2
+;             WinMove, x, y
+;             ifWinExist, ahk_class TaskSwitcherOverlayWnd
+;                 WinMove, x, y
+;         }
+;     }
+;     KeyWait, XButton1
+;     Send {Blind}{Alt Up}
+; *XButton1 Up::
+;     return
 
 ; Allow WheelLeft/Right keybindings.
-#IfWinActive ahk_class Valve001 ; HALF-LIFE 2
-*WheelLeft::Send, {Blind}-
-*WheelRight::Send, {Blind}=
-#IfWinActive World of Warcraft ahk_class GxWindowClassD3d
-*WheelLeft::Send, {Blind}[
-*WheelRight::Send, {Blind}]
+; #IfWinActive ahk_class Valve001 ; HALF-LIFE 2
+;     *WheelLeft::Send, {Blind}-
+;     *WheelRight::Send, {Blind}=
+; #IfWinActive World of Warcraft ahk_class GxWindowClassD3d
+;     *WheelLeft::Send, {Blind}[
+;     *WheelRight::Send, {Blind}]
+; #IfWinActive
 
-#IfWinActive
 ; Use AutoHotkey_L's #if feature for more effective blacklisting.
 #if m_WaitForRelease || !G_Blacklisted()
 
@@ -136,6 +137,14 @@ PasteSpecial:
     send, ^v
 return
 
+; isPuzzleActive() {
+;     SetTitleMatchMode, 2
+;     if (WinActive("Stitches -")) {
+;         return true
+;     }
+;     return false
+; }
+
 ; S-shape:      Sleep
 Gesture_L_D_R_D_L:
     m_DelayedAction = DoSleep
@@ -150,6 +159,7 @@ return
 
 Gesture_R_U:
     MouseGetPos,,,KDE_id
+    WinActivate, ahk_id %KDE_id%
     WinGet,KDE_Win,MinMax,ahk_id %KDE_id%
 
     if (WinActive("ahk_class MozillaWindowClass") or WinActive("ahk_class Chrome_WidgetWin_0")
@@ -175,68 +185,20 @@ Gesture_R_U:
 return
 
 Gesture_RButton:
-    ;G_MinimizeActiveWindow()
-IfWinActive, ahk_class Shell_TrayWnd
-{
-    WinSet AlwaysOnTop, Toggle, %ActiveWin%
-}
-else if (0 && WinActive("ahk_class MozillaWindowClass"))
-{
-    if (instr( Title, "img2tab")) {
-        Send, ^{tab}
-        return
-    }
-    Click, Right
-    sleep, 1000
-    sendinput {up}{up}{right}{up}
-    sleep, 1000
-    send {enter}
-    sendinput ^{pgup}^w^{pgdn}
-    ;sendinput {down}
-
-    return
-
-    ; In firefox, open images in tab and move to next tab.
-    WinGetTitle, Title, A
-    CoordMode, Pixel, Client 
-    if (instr( Title, "Pictures linked from")) {
-        Send, ^{tab}
-        return
-    }
-    XP := 427
-    YP := 89
-    
-    PixelGetColor, OutputVar, %XP%, %YP%
-    DebugTip(OutputVar)
-    if (OutputVar != 0x00B800) {
-        Sleep, 1
-        XP := 425
-        YP := 82
-        PixelGetColor, OutputVar, %XP%, %YP%
-    }
-    if (OutputVar = 0x00B800) {
-        CoordMode, Mouse, Client
-        MouseGetPos, X, Y
-        Click %XP%, %YP%
-        sleep, 200
-        send, ^{tab}
-        MouseMove, X, Y, 0
+    If (WinActive("ahk_class Shell_TrayWnd")) {
+        WinSet AlwaysOnTop, Toggle, %ActiveWin%
+    } else if (m_gesture = "_U") {
+        SendInput, {Media_Play_Pause}
     } else {
-        send, ^w
+        Send, ^c
     }
-    return
-}
-else {
-    Send, ^c
-}
 return
 
 Gesture_MButton:
-    if m_gesture = _U
-    {
+    if (m_gesture = "_U") {
         Send {Volume_Mute}
         SoundGet, vol
-        G_ToolTip(vol)
+        OSD(Round(vol))
         return        
     }
 
@@ -251,231 +213,72 @@ Gesture_MButton:
 return
 
 Gesture_LButton:
-; ; WIP ---------------------------------------------------------------------
-if (0 && WinActive("ahk_class MozillaWindowClass"))
-{
-    Clipboard =
-    Click right
-    ;~ sleep 1000
-    send, a
-    ClipWait, .2
-    RealLink := InStr(Clipboard, "http://",false, 3)
-    DebugTip(Clipboard . "`r`n" . RealLink)
-    sleep 1000
-    if (RealLink > 0) {
-        RealLink := SubStr(Clipboard, RealLink)
-        send, !d^v{Blind}!{enter}^{tab}
-    } else {
-        ;~ send, {mbutton}
-    }
-    return
-}
-;  --------------------------------------------------------------------------
-#If
     if m_gesture = _U
     {
         gosub ActivateMedia
         return
     }
-    ;Send, {alt down}{tab}{alt up}
-    ;Click
-    ;Send, ^v
     gosub PasteSpecial
 return
 
-; Initiate Alt-tab, wheelup/down continues.
+; Jump to previous window
 Gesture_R_L:
-send, {alt down}{tab}{alt up}
-    ;m_gesture = _R
-    ;gosub Gesture_WheelDown
+    send, {alt down}{tab}{alt up}
 return
 
-Gesture_WheelUp:
-    ;MsgBox, %m_gesture%
-    if m_gesture = _R
-    {
-        m_CustomKeyUp := "{alt up}"
-        send, {alt down}+{tab}
-        return
-    }
-    if m_gesture = _U
-    {
-        if WinActive("ahk_exe Spotify.exe") 
-        {
-            Send, ^{up}
-            return
-        }
-
-        Send {Volume_Up 2}
-        Sleep 1
-        SoundGet, vol
-        G_ToolTip(vol)
-        return        
-    }
-    if m_gesture = _L
-    {
-        if WinActive("ahk_class SciTEWindow")
-            Send, +{F3}
-        else if WinActive("ahk_class Chrome_WidgetWin_1")
-            Send, +^g
-        return        
-    }
-    if m_gesture = _D
-    {
-        send, ^#{Left}
-        return
-    }
-    XButton2&WheelUp:
-    if m_ScrolledWheel = 0
-    {
-        MouseGetPos,,,KDE_id
-        WinActivate, ahk_id %KDE_id%
-    }
-    if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS"))
-        Send ^{PgUp}
-    else if (WinActive("ahk_exe Code.exe"))
-        Send !{Left}
-    else if WinActive("ahk_class ShImgVw:CPreviewWnd")
-        Send {Left}
-    else
-        Send ^+{tab}
-return
+sendKeys(keys) {
+    send %keys%
+}
 
 Gesture_WheelDown:
-    if m_gesture = _R
-    {
+Gesture_WheelUp:
+    up := A_ThisHotkey == "*WheelUp"
+    if (m_gesture = "_R") {
+        ; Navigate windows (alt tab)
         m_CustomKeyUp := "{alt up}"
-        send, {alt down}{tab}
-        return
-    }
-    if m_gesture = _U
-    {
-        if WinActive("ahk_exe Spotify.exe") 
-        {
-            Send, ^{down}
-            return
+        sendKeys("{alt down}" . (up ? "+" : "") . "{tab}")
+    } else if (m_gesture = "_D_L_U") {
+        ; "undo" 
+        sendKeys(up ? "^z" : "^y")
+    } else if (m_gesture = "_U") {
+        ; Change volume on spotify if active, else globally
+        if WinActive("ahk_exe Spotify.exe") {
+            sendKeys("^" (up ? "{Up}" : "{Down}"))
+        } else {
+            sendKeys("{Volume_" . (up ? "Up" : "Down") . " 2}")
+            Sleep 100
+            SoundGet, vol
+            OSD(Round(vol))
         }
-        Send {Volume_Down 2}
-        Sleep 1       
-        SoundGet, vol
-        G_ToolTip(vol)
-        return        
-    }
-    if m_gesture = _L
-    {
-        if WinActive("ahk_class SciTEWindow")
-            Send, {F3}
-        else if WinActive("ahk_class Chrome_WidgetWin_1")
-            Send, ^g
-        return        
-    }
-    if m_gesture = _D
-    {
-        send, ^#{Right}
-        return
-    }
-    XButton2&WheelDown:
-    if m_ScrolledWheel = 0
-    {
-        MouseGetPos,,,KDE_id
-        WinActivate, ahk_id %KDE_id%
-    }
-    if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS"))
-        Send ^{PgDn}
-    else if (WinActive("ahk_exe Code.exe"))
-        Send !{Right}
-    else if WinActive("ahk_class ShImgVw:CPreviewWnd")
-        Send {Right}
-    else
-        Send ^{tab}
-return
-
-XButton2&RButton:
-    if WinActive("XP - Microsoft Virtual PC 2007")
-        Send {Alt Down} n{Alt Up}
-    else
-        G_MinimizeActiveWindow()
-return
-
-XButton2&MButton:
-/*    if WinActive("ahk_group WinCloseGroup")
-        WinClose
-    else
-        Send {Alt Down}{F4}{Alt Up}
-        */
-    Send ^c
-    IfWinActive, ahk_class SciTEWindow
-    {
-        Sleep, 300
-        Send {esc}
+    } else if (m_gesture = "_L") {
+        ; Repeat find
+        if (WinActive("ahk_class SciTEWindow")) {
+            sendKeys ((up ? "+" :"") "F3")
+        } else if (WinActive("ahk_class Chrome_WidgetWin_1")) {
+            sendKeys ((up ? "+" :"") "^g")
+        }
+    } else if (m_gesture = "_D") {
+        ; Navigate desktops
+        sendKeys("^#" (up ? "{Left}" : "{Right}"))
+    } else {
+        ; Navigate tabs (ctrl tab)
+        if (m_ScrolledWheel = 0) {
+            MouseGetPos,,,KDE_id
+            WinActivate, ahk_id %KDE_id%
+        }
+        if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS")) {
+            sendKeys("^" (up ? "{PgUp}" : "{PgDn}"))
+        } else if (WinActive("ahk_exe Code.exe")) {
+            sendKeys("^" (up ? "{PgUp}" : "{PgDn}"))
+        } else if (WinActive("ahk_class ShImgVw:CPreviewWnd")) {
+            sendKeys(up ? "{Left}" : "{Right}")
+        } else {
+            sendKeys((up ? "+" :"") "^{tab}")
+        }
     }
 return
 
-XButton2&LButton:
-/*    if WinActive("ahk_group WinCloseGroup")
-        WinClose
-    else
-        Send {Alt Down}{F4}{Alt Up}
-        */
-    MouseGetPos, MouseX, MouseY
-    MouseClick, Left, MouseX, MouseY
-    Send ^v
-    
-return
-
-; Implement XButton2 as a prefix key while also allowing the
-; duration of the press to decide its final (default) effect.
-XButton2::
-    IfWinActive, ahk_class MozillaWindowClass
-    {
-	;send,!b
-	;sleep, 500
-	;send,[right]b{up}{up}{enter}
-	CoordMode, Mouse, Window
-	MouseGetPos, X, Y
-	Click 394,97
-    sleep, 200
-	send, ^{tab}
-	MouseMove, X, Y, 0
-    return
-}
-    if m_WaitForRelease ; Holding gesture button.
-    {
-        m_ScrolledWheel := true
-        m_ExitLoop := true
-        KeyWait, XButton2
-        Send {Media_Prev}
-        return
-    }
-    Hotkey, WheelUp,   XButton2&WheelUp,   On
-    Hotkey, WheelDown, XButton2&WheelDown, On
-    Hotkey, LButton,   XButton2&LButton,   On
-    Hotkey, RButton,   XButton2&RButton,   On
-    Hotkey, MButton,   XButton2&MButton,   On
-
-    XButton2_tick := A_TickCount
-
-    KeyWait, XButton2
-    
-    if (A_ThisHotkey = "XButton2") {
-        short_press := (A_TickCount - XButton2_tick) < 200
-        if short_press
-            Send ^{Tab}
-        else
-            Send ^+{Tab}
-    } ; else: some other hotkey has fired
-        
-    Hotkey, WheelUp,   Off
-    Hotkey, WheelDown, Off
-    Hotkey, LButton,   Off
-    Hotkey, RButton,   Off
-    Hotkey, MButton,   Off
-    
-    ; Reapply gesture keys in case they overlap with the above.
-    Hotkey, %m_GestureKey%, GestureKey_Down, On
-    if m_GestureKey2
-        Hotkey, %m_GestureKey2%, GestureKey_Down, On
-return
+#If ; end blacklisted
 
 G_Blacklisted()
 {
