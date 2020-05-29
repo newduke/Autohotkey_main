@@ -28,34 +28,36 @@ spotifyKey(key) {
 
 #i::
 ActivateMedia:
-	title:="ahk_exe Spotify.exe"
-
-    If WinExist(title) {
-        if WinActive( title ) {
-        	;DebugTip("active")
-
-            WinMinimize
-        }
-        else {
-        	;DebugTip("not active")
-        	WinActivate
-
+	title:="ahk_exe spotify.exe"
+	if WinActive( title ) {
+		WinMinimize
+		return
+	}
+	WinGet, id, list,%title%
+	if (id = 0) {
+		Run C:\Users\%A_UserName%\AppData\Roaming\Spotify\Spotify.exe ; hopefully its the same for everyone else?
+		return
+	}
+	Loop, %id%
+	{
+		this_id := id%A_Index%
+		WinActivate, ahk_id %this_id%
+		WinGetTitle, this_title, ahk_id %this_id%
+		if (this_title != "") {
             WinMaximize
-        }
-    }
-    else {
-        run C:\Users\%A_UserName%\AppData\Roaming\Spotify\Spotify.exe ; hopefully its the same for everyone else?
-    }
+			return
+		}
+	}
 return
 
-#m::
+#x::
 Send, {Media_Prev}
 ;If WinExist("ahk_class iTunes") or WinExist("ahk_class SpotifyMainWindow")
 ;ControlSend, ahk_parent, ^{LEFT}  ; < previous
 ;ControlSend, ahk_parent, #c  ; < previous
 return
 
-#,::
+#c::
 Send, {Media_Next}
 ;If WinExist("ahk_class iTunes") or WinExist("ahk_class SpotifyMainWindow")
 ;ControlSend, ahk_parent, ^{RIGHT}  ; > next
@@ -63,7 +65,7 @@ Send, {Media_Next}
 ;Send, ^{RIGHT}
 return
 
-#.::
+#z::
 	Send, {Media_Play_Pause}
 	; If WinExist("ahk_class SpotifyMainWindow") or WinExist("ahk_class iTunes")
 	; ControlSend, ahk_parent, {SPACE}  ; play/pause

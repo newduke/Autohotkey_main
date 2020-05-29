@@ -224,7 +224,7 @@ Alt & WheelUp::ShiftAltTab
 	; menu bar. Note that even without this enabled, menu shortcuts such as Alt+F will
 	; still operate correctly:
 	;  Send,{Alt} 
-	KeyWait,Alt,D T0.6 ; ... and the next press.
+	KeyWait,Alt,D T0.3 ; ... and the next press.
 	If Errorlevel ; If it never comes or takes too long, DoubleAlt remains false.
 		return
 	DoubleAlt := True ; Otherwise, it's true until Alt is released (activating this hotkey again).

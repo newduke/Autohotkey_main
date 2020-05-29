@@ -9,22 +9,23 @@ HandleCaps:
 	critical_caps := 1
 	gosub KeyStates
 	; ctrl+alt+caps = functional capslock
-	if (KSM == "^!")
-	{
+	if (KSM == "^!") {
 		GetKeyState, capsdown, CapsLock, T
 		if capsdown = D
 			capsdown = Off
 		else
 			capsdown = On
 		SetCapsLockState, %capsdown%
+	} else {
+		CapsPresses += 1
 	}
 	CapsHeld := 1
 	NextPressTime := A_TickCount
 	DiffTime := NextPressTime
 	DiffTime -= PressTime
 	ForceHeld := 0
-	if (KSM = "+") ; || DiffTime < 300)
-	{
+	if (KSM = "+") { ; || DiffTime < 300)
+		; Force held mode
 		DebugTip("Double tap", 3)
 		ForceHeld := 1
 	}
@@ -36,6 +37,9 @@ HandleCaps:
 return
 
 HandleCapsUp:
+	if (CapsPresses >= 1 && (A_TickCount - PressTime < 300)) {
+		SendInput, {Esc}
+	}
 	CapsHeld := 0
 	critical_caps := 0
 goto ToggleIt
@@ -53,7 +57,7 @@ ToggleIt:
 		AK_toggle = Off
 	}
 	DebugTip(AK_toggle . " " . ForceHeld, 3)
-	SetScrollLockState, %AK_toggle%
+	; SetScrollLockState, %AK_toggle%
 	hotkey, *u, %AK_toggle%
 	hotkey, *u up, %AK_toggle%
 	hotkey, *o, %AK_toggle%
@@ -118,11 +122,17 @@ KeyStatesFaked:
 return
 
 Backspace:
-	Send, %KSM%{BACKSPACE Down}
+	Send, %KSM%{BACKSPACE}
 return
 BackspaceR:
-	Send, %KSM%{BACKSPACE Up}
+	; Send, %KSM%{BACKSPACE Up}
 return
+; Backspace:
+; 	Send, %KSM%{BACKSPACE Down}
+; return
+; BackspaceR:
+; 	Send, %KSM%{BACKSPACE Up}
+; return
 Home:
 	Send, %KSM%{HOME Down}
 return
@@ -145,14 +155,14 @@ upAction() {
 		Send, %KSM%{UP 6}
 	} 
 	else
-		Send, %KSM%{UP Down}
+		Send, %KSM%{UP}
 	}
 Up:
 	RapidFire(250, 10, original_key, uHeld, "upAction")
 return
 UpR:
 	uHeld := 0
-	Send, %KSM%{LEFT Up}
+	Send, %KSM%{UP Up}
 return
 downAction() {
 	if (ctrlstate and AllowMultiarrow())
@@ -163,31 +173,31 @@ downAction() {
 		Send, %KSM%{DOWN 6}
 	} 
 	else
-		Send, %KSM%{DOWN Down}
+		Send, %KSM%{DOWN}
 	}
 Down:
 	RapidFire(250, 10, original_key, dHeld, "downAction")
 return
 DownR:
 	dHeld := 0
-	Send, %KSM%{LEFT Up}
+	Send, %KSM%{DOWN Up}
 return
 
 leftAction() {
-	Send, %KSM%{LEFT Down}
+	Send, %KSM%{LEFT}
 }
 Left:
-	RapidFire(200, 10, original_key, lHeld, "leftAction")
+	RapidFire(250, 10, original_key, lHeld, "leftAction")
 return
 LeftR:
 	lHeld := 0
 	Send, %KSM%{LEFT Up}
 return
 rightAction() {
-	Send, %KSM%{RIGHT Down}
+	Send, %KSM%{RIGHT}
 }
 Right:
-	RapidFire(200, 10, original_key, rHeld, "rightAction")
+	RapidFire(250, 10, original_key, rHeld, "rightAction")
 return
 RightR:
 	rHeld := 0
@@ -262,9 +272,10 @@ PageDn_:
 PageDnR_:
 EscD_:
 EscR_:
+	CapsPresses := 0
 	gosub KeyStates
 	original_key := RegExReplace(A_ThisHotkey, "(\*)")
-	if (capstate = "U" && ForceHeld = 0) {
+	if (!capstate && ForceHeld = 0) {
 		; Something went wrong, but we'll bail out here
 		original_key := RegExReplace(A_ThisHotkey, "(\*)")
 		ToolTipTime(QuotedVar("original_key") . " " .  QuotedVar("A_ThisHotkey") . " " . QuotedVar("A_ThisLabel"))

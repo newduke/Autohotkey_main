@@ -176,6 +176,8 @@ Gesture_R_U:
     } else if (WinActive("ahk_class QWidget")) {
         Send, f
         return
+    } else if (WinActive("ahk_exe zoom.exe")) {
+        Send, !f
     }
 
     If KDE_Win
@@ -185,7 +187,7 @@ Gesture_R_U:
 return
 
 Gesture_RButton:
-    If (WinActive("ahk_class Shell_TrayWnd")) {
+    If (WinActive("ahk_class Shell_TrayWnd") || WinActive("ahk_class Shell_SecondaryTrayWnd")) {
         WinSet AlwaysOnTop, Toggle, %ActiveWin%
     } else if (m_gesture = "_U") {
         SendInput, {Media_Play_Pause}
@@ -237,7 +239,7 @@ Gesture_WheelUp:
         ; Navigate windows (alt tab)
         m_CustomKeyUp := "{alt up}"
         sendKeys("{alt down}" . (up ? "+" : "") . "{tab}")
-    } else if (m_gesture = "_D_L_U") {
+    } else if (m_gesture = "_D_R_U") {
         ; "undo" 
         sendKeys(up ? "^z" : "^y")
     } else if (m_gesture = "_U") {

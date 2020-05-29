@@ -9,8 +9,7 @@
 ; based on the new current process
 CheckFullScreen:
 	WinGetTitle, title, A
-	if (title != lastTitle)
-	{
+	if (title != lastTitle) {
 		lastTitle := title
 		func := "WindowChanged"
 		if (IsFunc(func))
@@ -23,17 +22,14 @@ CheckFullScreen:
 	ScriptFile := Title . ".ahk"
 	Empty :=
 	SplitPath, title,,,ext
-	if (ext != "ahk" && Title != Empty && ScriptFile != LastScriptFile)
-	{
+	if (ext != "ahk" && Title != Empty && ScriptFile != LastScriptFile) {
 		; find the old running script and kill it
 		; have to be sure it's class AutoHotkey or it might match, say,
 		;   an editor editing a script of the same name.
 		DetectHiddenWindows, On
 		SetTitleMatchMode, 2
-		If (HoldLastScriptFile != LastScriptFile)
-		{
-			IfWinExist, %LastScriptFile% ahk_class AutoHotkey
-			{
+		If (HoldLastScriptFile != LastScriptFile) {
+			If (WinExist(LastScriptFile "ahk_class AutoHotkey")) {
 				If (LastScriptFile != "Autohotkey.ahk")
 					WinClose
 			}
@@ -54,8 +50,7 @@ CheckFullScreen:
 	fs_latched := IsFullScreen()
 	if (LastScriptFile = "Guild Wars.ahk")
 		fs_latched := 1
-	if (fs_latched != fs)
-	{
+	if (fs_latched != fs) {
 		fs := fs_latched
 		if (IsFunc("FullScreenChanged"))
 			FullScreenChanged(fs)
@@ -65,8 +60,7 @@ return
 FullScreenChanged(fs) {
 	Full_Only := "Off"
 	Windowed_Only := "On"
-	if (fs)
-	{
+	if (fs) {
 		Full_Only := "On"
 		Windowed_Only := "Off"
 	}
