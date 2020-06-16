@@ -29,8 +29,8 @@ hotkey, *h, Del_
 hotkey, *h up, DelR_
 hotkey, *m, PageUp_
 hotkey, *m up, PageUpR_
-hotkey, *n, EscD_
-hotkey, *n up, EscR_
+; hotkey, *n, EscD_
+; hotkey, *n up, EscR_
 ; backquote the ,
 hotkey, *`,, PageDn_
 hotkey, *`, up, PageDnR_
@@ -38,5 +38,4 @@ hotkey, *`, up, PageDnR_
 hotkey, *CapsLock, HandleCaps
 hotkey, *CapsLock up, HandleCapsUp
 
-;~ AK_toggle = On
 gosub ToggleIt

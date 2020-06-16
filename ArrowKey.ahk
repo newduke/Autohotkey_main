@@ -3,11 +3,13 @@ global ctrlstate
 return
 
 HandleCaps:
+	critical
 	if (critical_caps = 1) {
 		return
 	}
 	critical_caps := 1
 	gosub KeyStates
+	; Send {RControl Down}
 	; ctrl+alt+caps = functional capslock
 	if (KSM == "^!") {
 		GetKeyState, capsdown, CapsLock, T
@@ -37,9 +39,17 @@ HandleCaps:
 return
 
 HandleCapsUp:
-	if (CapsPresses >= 1 && (A_TickCount - PressTime < 300)) {
-		SendInput, {Esc}
+	; Send {RControl Up}
+	if (A_PriorKey=="CapsLock"){
+		if (A_TimeSincePriorHotkey < 300) {
+			Suspend On
+			Send, {Esc}
+			Suspend Off
+		}
 	}
+	; if (CapsPresses >= 1 && (A_TickCount - PressTime < 300)) {
+	; 	SendInput, {Esc}
+	; }
 	CapsHeld := 0
 	critical_caps := 0
 goto ToggleIt
@@ -76,8 +86,8 @@ ToggleIt:
 	hotkey, *h up, %AK_toggle%
 	hotkey, *m, %AK_toggle%
 	hotkey, *m up, %AK_toggle%
-	hotkey, *n, %AK_toggle%
-	hotkey, *n up, %AK_toggle%
+	; hotkey, *n, %AK_toggle%
+	; hotkey, *n up, %AK_toggle%
 	hotkey, *`,, %AK_toggle%
 	hotkey, *`, up, %AK_toggle%
 return
@@ -277,7 +287,6 @@ EscR_:
 	original_key := RegExReplace(A_ThisHotkey, "(\*)")
 	if (!capstate && ForceHeld = 0) {
 		; Something went wrong, but we'll bail out here
-		original_key := RegExReplace(A_ThisHotkey, "(\*)")
 		ToolTipTime(QuotedVar("original_key") . " " .  QuotedVar("A_ThisHotkey") . " " . QuotedVar("A_ThisLabel"))
 		gosub HandleCapsUp
 		send, {%original_key%}
