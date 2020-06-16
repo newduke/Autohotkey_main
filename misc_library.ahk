@@ -8,7 +8,7 @@ global vMyText
 	Gui, OSD:New
 	Gui, OSD:Color, %CustomColor%
 	Gui, OSD:Font, s32  ; Set a large font size (32-point).
-	Gui, OSD:Add, Text, vMyText cFFFFFF, XXXXX YYYYY YYYYY  ; XX & YY serve to auto-size the window.
+	Gui, OSD:Add, Text, vMyText cFFFFFF, XXXXX YYYYY YYYYY ; XX & YY serve to auto-size the window.
 	; Make all pixels of this color transparent and make the text itself translucent (150):
 	WinSet, TransColor, %CustomColor% 150
 OSD(text, time:=1000) {
@@ -110,13 +110,55 @@ TrueFalse(bool) {
 		return "true"
 	return "false"
 }
+; Prints the variable name and its contents
+; ex: name := "Harry"; QuotedVar("name") = 'name: "Harry"'
 QuotedVar(var) {
-	return % var . ": '" . %var% . "'"
+	return var ": " vartostring(%var%)
 }
-Quoted(string){
-	string = "%string%"
+quoted(string){
+	return "%string%"
 }
+vartostring(var) {
+    builder := ""
+    if (var[1]) { ; array
+        builder .= "["
+        len := var.length()
+        loop % len - 1 {
+            builder .= vartostring(var[a_index]) ", "
+        }
+        builder .= vartostring(var[len]) "]"
+    } else { ; don't know how to see if var is associative other than try to loop through it
+        count := 0
+        for index, value in var {
+            count += 1
+            builder .= index ": " vartostring(value) ", "
+        }
+        if (count) {
+            builder := "{ " substr(builder, 1, -2) . " }"
+        } else {
+            builder = "%var%"
+        } 
+    }
+    return builder
+}
+
 
 BeginsWith(word, part) {
 	return (substr(word, 1, StrLen(part)) == part)
+}
+
+; Maximize or restore given window. Defaults to window under cursor
+; returns found window
+MaximizeRestore(win:=0){
+	if (!win) {
+    	MouseGetPos,,,ahk_id
+		win := "ahk_id" ahk_id
+	}
+    WinGet,winState,MinMax,%win%
+    If (winState) {
+        WinRestore,%win%
+    } Else {
+        WinMaximize,%win%
+    }
+	return win
 }

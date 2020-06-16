@@ -303,3 +303,54 @@ autocomplete:
 return
 #If
 }
+
+; F1::
+; Broken attempt to load autohotkey help into memory
+AutoHotkeyCommands(q:="") {
+	static command
+	; global c := q
+	; ToolTipTime(QuotedVar("c"))
+	url:="https://autohotkey.com/docs/commands/"
+	
+	If (q="")	
+		If !(q:=Trim(CtrlC()," `t`n`r"))
+			Return
+	If !(0 command){
+		html:=UrlDownloadToVar(url), command:={}, i:=1
+		While i:=RegExMatch(html,"<a href=""([^""]*)"">([^<]*)</a>",s,i+1)
+			command[s2]:=s1
+	}
+	; global c := command
+	; ToolTipTime(QuotedVar("c"))
+
+	If (v:=command[q]) || (v:=command[q "()"])
+		t:=url v
+	Else
+		For k,v in command
+			If InStr(k,q){
+				t:=url v
+				Break
+			}
+	If t
+		Run % t	
+Return
+}
+CtrlC(){
+	WholeClipBoard:=ClipBoardAll
+	ClipBoard =
+	Send ^c
+	ClipWait,.3
+	str:=ClipBoard
+	ClipBoard:=WholeClipBoard
+	Return, str
+}
+; This is erroring
+UrlDownloadToVar(URL) {
+	ComObjError(false)
+	WebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	WebRequest.SetTimeouts(5000, 5000, 3000, 3000)
+	WebRequest.Open("GET", URL)
+	WebRequest.Send()
+	TooltipTime("doh!" . A_LastError,3000)
+	Return WebRequest.ResponseText
+}
