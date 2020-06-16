@@ -1,6 +1,12 @@
 /*
 DragToScroll.ahk
+
+new discussion:
+https://autohotkey.com/boards/viewtopic.php?f=6&t=38457
+
+old discussion:
 http://www.autohotkey.com/forum/viewtopic.php?t=59726
+https://autohotkey.com/board/topic/55289-dragtoscroll-universal-drag-flingflick-scrolling/
 
 Scroll any active window by clicking and dragging with the right mouse button. 
 Should not interfere with normal right clicking. 
@@ -22,12 +28,15 @@ Jordan's notes
 . TODO: scrolling window should be fixed at click-time
 .   30 Mar 2013: seems to work now.
 */
+
 #SingleInstance Force
 #Persistent
 #NoEnv
 #NoTrayIcon
 #Include %A_ScriptDir%\ini.ahk
-GoSub, DTS_Init
+GoSub, Init
+#Include %A_ScriptDir%\logging.ahk
+#Include %A_ScriptDir%\misc_library.ahk
 Return
 
 ApplySettings:
@@ -40,39 +49,40 @@ Setting("ScrollDisabled", false)
 ; The chosen hotkey button
 ; Should work with pretty much any button, though 
 ; mouse or KB special keys (ctrl, alt, etc) are preferred.
-Setting("Button", "XButton2")
+Setting("Button", "RButton")
+; Setting("Button", "XButton2")
 
 ; Delay time before drag starts
 ; You must click and release "Button" before this time;
 ; Increase if you are having trouble getting "normal behavior"
-Setting("DragDelay", 150)                     ; in ms. 
+Setting("DragDelay", 100)                     ; in ms. 
 
 ; How often to poll for mouse movement & drag
 ; The major time unit for this script, everything happens on this
 ; schedule. Affects script responsiveness, scroll speed, etc.
-Setting("PollFrequency", 20)                  ; in ms
+Setting("PollFrequency", 10)                  ; in ms
 
 ; Speed
 ; Affects the overall speed of scrolling before acceleration
 ; Speed is "normalized" to 1.0 as a default
 Setting("DragThreshold", 0)                   ; in pixels
-Setting("SpeedX", 1.0)                        
-Setting("SpeedY", 1.0)                        
+Setting("SpeedX", 0.5)
+Setting("SpeedY", 1.0)
 
 ; MovementCheck
 ; if enabled, this check will abort dragging
 ; if you have not moved the mouse over MovementThreshold
 ; within the first MovementCheckDelay ms
 ; This is used for compatibility with other button-hold actions
-Setting("UseMovementCheck", false)
-Setting("MovementCheckDelay", 200)            ; in ms
+Setting("UseMovementCheck", true)
+Setting("MovementCheckDelay", 500)            ; in ms
 Setting("MovementThreshold", 0)               ; in px
 
 ; scroll method
 ; choose one of: mWheelKey, mWheelMessage, mScrollMessage
 ; WheelMessage & WheelKey are preferred; your results may vary
 Setting("ScrollMethodX", mWheelMessage)
-Setting("ScrollMethodY", mWheelMessage)
+Setting("ScrollMethodY", mWheelMessage )
 
 ; invert drag
 ; by default, you "drag" the document; moving up drags the document up,
@@ -101,7 +111,7 @@ Setting("ConfineToControl", false)
 
 
 ; Acceleration & momentum
-Setting("UseAccelerationX", false)
+Setting("UseAccelerationX", true)
 Setting("UseAccelerationY", true)
 Setting("MomentumThreshold", 0.7)             ; in 'speed'. Minimum speed to trigger momentum. 1 is always
 Setting("MomentumStopSpeed", 0.25)            ; in 'speed'. Scrolling is stopped when momentum slows to this value
@@ -118,7 +128,7 @@ Setting("UseScrollMomentum", false)
 ;
 Accelerate(arg)
 { 
-  return .009 * arg **3 + arg
+  return .01 * arg **3 + arg
 }
 
 ; double-click checking
@@ -127,7 +137,7 @@ Accelerate(arg)
 ; Simply set UseDoubleClickCheck := true
 ; Define ButtonDoubleClick (below) to do anything you want
 Setting("DoubleClickThreshold", DllCall("GetDoubleClickTime"))
-Setting("UseDoubleClickCheck", true)
+Setting("UseDoubleClickCheck", false)
 
 ; Gesture checking
 ; 
@@ -137,17 +147,22 @@ Setting("UseDoubleClickCheck", true)
 Setting("UseGestureCheck", false)
 Setting("GestureThreshold", 30)
 Setting("GesturePageSize", 15)
-Setting("GestureBrowserNames", "chrome.exe,firefox.exe,iexplore.exe")
-
-
-; Server settings
-; if enabled, the script automatically checks for updates at startup
-Setting("UseUpdateCheck", true)
+Setting("GestureBrowserNames", "brave.exe,chrome.exe,firefox.exe,iexplore.exe")
 
 ; Change Mouse Cursor 
-; If enabled, mouse cursor is set to the DtS hand icon during a drag
+; If enabled, mouse cursor is set to the cursor specified below
 Setting("ChangeMouseCursor", true)
 
+; If the above ChangeMouseCursor setting is true, this determines what cursor style
+; Choose either:
+;       "cursorHand"           -  the original DragToScroll hand icon
+;       "cursorScrollPointer"  -  the scrollbar and pointer icon (SYNTPRES.ico)
+Setting("ChangedCursorStyle", "cursorScrollPointer")
+
+; If enabled, cursor will stay in its initial position for the duration of the drag
+; This can look jittery with the "cursorHand" style because it updates based
+; on the PollFrequency setting above
+Setting("KeepCursorStationary", true)
 Return
 
 
@@ -166,6 +181,7 @@ ButtonDoubleClick:
   ; You may however attempt to close it automatically 
   ; this may yield unintended results, sending a random {esc}
   Sleep 200
+  Log("ESC")
   Send {Esc}
 
   slowSpeed := .5
@@ -239,7 +255,8 @@ Return
 
 ; Init
 ;--------------------------------
-DTS_Init:
+Init:
+  ; LogInitGUI(,1)
   CoordMode, Mouse, Screen
   Gosub, Constants
   Gosub, Reset
@@ -259,14 +276,22 @@ DTS_Init:
   Menu, Tray, Icon
   GoSub, TrayIconInit
   GoSub, UpdateTrayIcon
-  GoSub, LoadServerSettings
+
+  ; Initialize GUI for new cursor
+  if (ChangeMouseCursor) && (ChangedCursorStyle = "cursorScrollPointer")
+  {
+     Gui, 98: Add, Pic, x0 y0 vMyIconVar hWndMyIconHwnd 0x3, %A_ScriptDir%\SYNTPRES.ico      ; 0x3 = SS_ICON
+     Gui, 98: Color, gray
+     Gui, 98: +LastFound -Caption +AlwaysOnTop +ToolWindow
+     WinSet, TransColor, gray
+  }
 
 Return
 
 ; Constants
 ;--------------------------------
 Constants:
-  VERSION = 2.4
+  VERSION = 2.5
   DEBUG = 0
   WM_HSCROLL = 0x114
   WM_VSCROLL = 0x115
@@ -277,8 +302,8 @@ Constants:
   SB_LINEUP = 0
   SB_LINELEFT = 0
   SB_LINERIGHT = 1
-  X_ADJUST = -.2     ; constant. normalizes user setting Speed to 1.0
-  Y_ADJUST = -.2     ; constant. normalizes user setting Speed to 1.0
+  X_ADJUST = .2     ; constant. normalizes user setting Speed to 1.0
+  Y_ADJUST = .2     ; constant. normalizes user setting Speed to 1.0
   ;DragStatus
   DS_NEW = 0        ; click has taken place, no action taken yet
   DS_DRAGGING = 1   ; handler has picked up the click, suppressed normal behavior, and started a drag
@@ -291,8 +316,7 @@ Constants:
   mWheelKey := "WheelKey"              ; simulate mousewheel
   mWheelMessage := "WheelMessage"      ; send WHEEL messages
   mScrollMessage := "ScrollMessage"    ; send SCROLL messages
-  URL_SERVERSETTINGS := "http://dragtoscroll.dreamhosters.com/ServerSettings.ini"
-  URL_DISCUSSION := "http://www.autohotkey.com/forum/viewtopic.php?t=59726"
+  URL_DISCUSSION := "https://autohotkey.com/boards/viewtopic.php?f=6&t=38457"
 Return
 
 
@@ -337,6 +361,7 @@ Critical
 
    ; Initialize DragStatus, indicating a new click
    DragStatus := DS_NEW
+   Mileage := 0
    GoSub, Reset
 
    ; Keep track of the last two click times.
@@ -368,6 +393,7 @@ Critical
       Target := ""
     
     ;ToolTip("Target: " . Target . "    ID-WC:" . WinHwnd . "/" . CtrlHwnd . "     X/Y:" . OriginalX . "/" . OriginalY . "     Class-WC:" . WinClass . "/" CtrlClass . "     Process:" . WinProcessPath)
+    ;ToolTip("Process Name:" . WinProcessName . "Process:" . WinProcessPath)
     
     ; if we're using the WheelKey method for this window,
     ; activate the window, so that the wheel key messages get picked up
@@ -393,6 +419,10 @@ Return
 ; Hotkey Handler for button up
 ;
 ButtonUp:
+  Log("ButtonUp: " QuotedVar("DragStatus") QuotedVar("Mileage"))
+  if (DragStatus = DS_DRAGGING && !Mileage) {
+    DragStatus := DS_NEW
+  }
 
   ; Check for a double-click
   ; DoubleClickCheck may mark DragStatus as HANDLED
@@ -416,6 +446,16 @@ ButtonUp:
   ; Skip dragging, and treat like a normal click.
   if (DragStatus == DS_NEW)
     GoSub, DragSkip
+
+  ; update icons & cursor
+  ; done before handling momentum since we've already released the button
+  GoSub UpdateTrayIcon
+  if (ChangeMouseCursor)
+  {
+    RestoreSystemCursor()
+    if (ChangedCursorStyle = "cursorScrollPointer")
+      Gui, 98: Hide
+  }
 
   ; check for and apply momentum
   if (DragStatus == DS_DRAGGING)
@@ -459,10 +499,24 @@ DragStart:
     ; Update the status, we're dragging now
     DragStatus := DS_DRAGGING
     
-    ; Update the cursor & icon 
+    ; Update the cursor & trayicon
     SetTrayIcon(hIconDragging)
     if (ChangeMouseCursor)
-      SetSystemCursor(hIconDragging)
+    {
+      if (ChangedCursorStyle = "cursorScrollPointer")
+      {
+        ;// show GUI with scrolling icon
+        Gui, 98: Show, x%OriginalX% y%OriginalY% NoActivate
+        Gui, 98: +LastFound
+        WinSet, AlwaysOnTop, On
+        ;// "hide" cursor by replacing it with blank cursor (from the AHK help file for DllCall command)
+        VarSetCapacity(AndMask, 32*4, 0xFF)
+        VarSetCapacity(XorMask, 32*4, 0)
+        SetSystemCursor(DllCall("CreateCursor", "uint", 0, "int", 0, "int", 0, "int", 32, "int", 32, "uint", &AndMask, "uint", &XorMask))
+      } 
+      else
+        SetSystemCursor(hIconDragging)
+    }
 
     ; set up for next pass
     ; to find the difference (New - Old)
@@ -491,23 +545,31 @@ DragStart:
     ; i.e. the amount the mouse moved in _this iteration_ of the DragStart handler
     ; If the distance the mouse moved is over the threshold,
     ; then scroll the window & update the coords for the next pass
+    ; Assume that for large DiffY, user intends a pure vertical movement and ignore horizontal
     DiffX := NewX - OldX
-    if (abs(DiffX) > DragThreshold)
+    DiffY := NewY - OldY
+    if (abs(DiffX) > DragThreshold && abs(DiffX) > abs(DiffY)*.5)
     {
+      SetTimer, MovementCheck, Off
       Scroll(DiffX, true)
-      if (DragThreshold > 0)
+      if (DragThreshold > 0) && (!KeepCursorStationary)
         OldX := NewX
     }
 
     ; Calculate/Scroll  - Y
     ; SAME AS X
-    DiffY := NewY - OldY
-    if (abs(DiffY) > DragThreshold)
+    if (abs(DiffY) > DragThreshold && abs(DiffY) > abs(DiffX)*.5)
     {
+      SetTimer, MovementCheck, Off
       Scroll(DiffY)
-      if (DragThreshold > 0)
+      if (DragThreshold > 0) && (!KeepCursorStationary)
         OldY := NewY
     }
+
+    if (KeepCursorStationary)
+      MouseMove, OriginalX, OriginalY
+    else if (ChangedCursorStyle = "cursorScrollPointer")
+      Gui, 98: Show, x%NewX% y%NewY% NoActivate
 
     ; Check for window edge scrolling 
     GoSub CheckEdgeScrolling
@@ -516,7 +578,7 @@ DragStart:
     ; and attempt to drag every iteration.
     ; whereas with a positive non-zero threshold,
     ; coords are updated only when threshold crossing (above)
-    if (DragThreshold <= 0)
+    if (DragThreshold <= 0) && (!KeepCursorStationary)
     {
       OldX := NewX
       OldY := NewY
@@ -533,11 +595,6 @@ DragStop:
 
   ; finish drag
   DragStatus := DS_HANDLED
-
-  ; update icons & cursor
-  GoSub UpdateTrayIcon
-  if (ChangeMouseCursor)
-    RestoreSystemCursor()
 Return
 
 
@@ -545,8 +602,10 @@ Return
 ; This just passes the mouse click.
 ;
 DragSkip:
-     DragStatus := DS_HANDLED
-     Send {%Button%}
+    DragStatus := DS_HANDLED
+    Log("skipped")
+    SendEvent {%Button%}
+    ; Send, {%Button% Down}{%Button% Up}
 Return
 
 ; Entering the HOLDING state
@@ -555,6 +614,13 @@ HoldStart:
   SetTimer, DragStart, Off
   DragStatus := DS_HOLDING
   Send, {%Button% Down}
+  GoSub UpdateTrayIcon
+  if (ChangeMouseCursor)
+  {
+    RestoreSystemCursor()
+    if (ChangedCursorStyle = "cursorScrollPointer")
+      Gui, 98: Hide
+  }
 Return
 
 ; Exiting the HOLDING state. 
@@ -575,7 +641,7 @@ MovementCheck:
 
   ; if we havent moved past the threshold start hold
   if (MoveDist <= MovementThreshold)
-  	GoSub, HoldStart
+    GoSub, HoldStart
   Critical, Off
 Return
 
@@ -656,7 +722,7 @@ Scroll(arg, horizontal="", format="px")
 {
   global
   local Direction, Factor, Method, wparam
-  
+
   ; get the speed and direction from arg arg
   Direction := ( arg < 0 ? -1 : 1 ) * ( Get("InvertDrag") ? -1 : 1 )
   Factor := abs( arg )
@@ -681,6 +747,8 @@ Scroll(arg, horizontal="", format="px")
       Factor := Accelerate(Factor)
   }
 
+  ;if (!horizontal) ToolTip, Speed: %arg% -> %Factor%
+
   ; Capture the current speed
   if (!horizontal)
     DiffYSpeed := Factor * Direction
@@ -692,11 +760,22 @@ Scroll(arg, horizontal="", format="px")
     Method := Get("ScrollMethodY")
   else
     Method := Get("ScrollMethodX")
-  
+    
   ; Do scroll
   ;  According to selected method
   ;  wparam is used in all methods, as the final "message" to send.
   ;  All methods check for direction by comparing (NewY < OldY)
+
+  ; Allow sub-pixel movement, and add it up over time
+  Remainder := Remainder%horizontal%
+  Remainder += Direction * Factor
+  Factor := Floor(Abs(Remainder))
+  Mileage += Factor
+  Remainder -= Direction * Factor
+  ; ToolTip, %Factor% %Remainder% %horizontal%
+  Remainder%horizontal% := Remainder
+
+  ; Log("Scroll requested: " Factor)
   if (Method = mWheelMessage)
   {
     ; format wparam; one wheel tick scaled by yFactor
@@ -718,7 +797,7 @@ Scroll(arg, horizontal="", format="px")
     if (!horizontal)
       wparam := Direction < 0 ? "{WheelDown}" : "{WheelUp}"
     else
-      wparam := Direction < 0 ? "{WheelLeft}" : "{WheelRight}"
+      wparam := Direction < 0 ? "{WheelRight}" : "{WheelLeft}"
       
     Loop, %Factor%
       Send, %wparam%
@@ -1024,98 +1103,25 @@ LoadLocalSettingSections:
     }
 Return
 
-; Loads a simple ini settings file from the web
-; This allows the script to do automatic update checking
-; computername is included only to get a basic idea of user count
-; 
-LoadServerSettings:
-  ; check for stop cases
-  SettingsCheckTime := GetSetting("LastCheckTime", "ServerSettings")
-  if (SettingsCheckTime != "")
-  {
-    SettingsCheckDiff=
-    EnvSub, SettingsCheckDiff, %SettingsCheckTime%, Minutes
-    if (SettingsCheckDiff < 30 && !A_ThisMenuItem && VERSION == GetSetting("LastSentVersion", "ServerSettings"))
-      return  
-  }
-  if (DEBUG  && !A_ThisMenuItem)
-    return
-    
-  if (A_ThisMenuItem)
-    ToolTip("Reloading Server Settings...")
-    
-    ; load remote settings  
-  if (InternetFileRead(ServerSettings, URL_SERVERSETTINGS . "?v=" . VERSION . "&u=" . A_UserName . "@" . A_ComputerName ))
-  {
-    SaveSetting("LastCheckTime", A_Now, "ServerSettings")
-    SaveSetting("LastSentVersion", VERSION, "ServerSettings")
-    
-    ; version check
-    if (UseUpdateCheck)
-    {
-      current := ini_GetValue(ServerSettings, "Version", "Current")
-      updateMessage := ini_GetValue(ServerSettings, "Version", "UpdateMessage")
-      if (VERSION < current)
-      {
-        MsgBox, 36, DtS Update Available!, DragToScroll v%current% is available`nWould you like to get to get this update?`n%updateMessage%
-        IfMsgBox Yes
-          Run, %URL_DISCUSSION%
-      }
-    }
-  }
-Return
-
-
-; Thanks to SKAN
-; http://www.autohotkey.com/forum/topic45718.html
 ;
-InternetFileRead( ByRef V, URL="", RB=0, bSz=1024, DLP="", F=0x84000000 ) {
- Static LIB="WININET\", QRL=16, CL="00000000000000", N=""
- If ! DllCall( "GetModuleHandle", Str,"wininet.dll" )
-      DllCall( "LoadLibrary", Str,"wininet.dll" )
- If ! hIO:=DllCall( LIB "InternetOpenA", Str,N, UInt,4, Str,N, Str,N, UInt,0 )
-   Return -1
- If ! (( hIU:=DllCall( LIB "InternetOpenUrlA", UInt,hIO, Str,URL, Str,N, Int,0, UInt,F, UInt,0 ) ) || ErrorLevel )
-   Return 0 - ( !DllCall( LIB "InternetCloseHandle", UInt,hIO ) ) - 2
- If ! ( RB  )
-   If ( SubStr(URL,1,4) = "ftp:" )
-     CL := DllCall( LIB "FtpGetFileSize", UInt,hIU, UIntP,0 )
-   Else If ! DllCall( LIB "HttpQueryInfoA", UInt,hIU, Int,5, Str,CL, UIntP,QRL, UInt,0 )
-     Return 0 - ( !DllCall( LIB "InternetCloseHandle", UInt,hIU ) )
-              - ( !DllCall( LIB "InternetCloseHandle", UInt,hIO ) ) - 4
- VarSetCapacity( V,64 ), VarSetCapacity( V,0 )
- SplitPath, URL, FN,,,, DN
- FN:=(FN ? FN : DN), CL:=(RB ? RB : CL), VarSetCapacity( V,CL,32 ), P:=&V,
- B:=(bSz>CL ? CL : bSz), TtlB:=0, LP := RB ? "Unknown" : CL,  %DLP%( True,CL,FN )
- Loop {
-       If ( DllCall( LIB "InternetReadFile", UInt,hIU, UInt,P, UInt,B, UIntP,R ) && !R )
-       Break
-       P:=(P+R), TtlB:=(TtlB+R), RemB:=(CL-TtlB), B:=(RemB<B ? RemB : B), %DLP%( TtlB,LP )
-       Sleep -1
- } TtlB<>CL ? VarSetCapacity( T,TtlB ) DllCall( "RtlMoveMemory", Str,T, Str,V, UInt,TtlB )
-  . VarSetCapacity( V,0 ) . VarSetCapacity( V,TtlB,32 ) . DllCall( "RtlMoveMemory", Str,V
-  , Str,T, UInt,TtlB ) . %DLP%( TtlB, TtlB ) : N
- If ( !DllCall( LIB "InternetCloseHandle", UInt,hIU ) )
-  + ( !DllCall( LIB "InternetCloseHandle", UInt,hIO ) )
-   Return -6
-Return, VarSetCapacity(V)+((ErrorLevel:=(RB>0 && TtlB<RB)||(RB=0 && TtlB=CL) ? 0 : 1)<<64)
-}
-
 ; Retrieve the full path of a process with ProcessID
 ; thanks to HuBa & shimanov
 ; http://www.autohotkey.com/forum/viewtopic.php?t=18550
 ;
-GetModuleFileNameEx(ProcessID)  
+GetModuleFileNameEx(ProcessID)  ; modified version of shimanov's function
 {
   if A_OSVersion in WIN_95, WIN_98, WIN_ME
-    Return 
+    Return
+ 
+  ; #define PROCESS_VM_READ           (0x0010)
+  ; #define PROCESS_QUERY_INFORMATION (0x0400)
   hProcess := DllCall( "OpenProcess", "UInt", 0x10|0x400, "Int", False, "UInt", ProcessID)
   if (ErrorLevel or hProcess = 0)
     Return
-  FileNameSize := 260
+  FileNameSize := 260 * (A_IsUnicode ? 2 : 1)
   VarSetCapacity(ModuleFileName, FileNameSize, 0)
-  CallResult := DllCall("Psapi.dll\GetModuleFileNameExA", "UInt", hProcess, "UInt", 0, "Str", ModuleFileName, "UInt", FileNameSize)
-  DllCall("CloseHandle", hProcess)
+  CallResult := DllCall("Psapi.dll\GetModuleFileNameEx", "Ptr", hProcess, "Ptr", 0, "Str", ModuleFileName, "UInt", FileNameSize)
+  DllCall("CloseHandle", "Ptr", hProcess)
   Return ModuleFileName
 }
 
@@ -1133,8 +1139,9 @@ GuiAppSettings:
   GuiAppBuilt := true
   Gui +Delimiter|
   Gui, 2:Default
-  Gui, Add, ComboBox, x10 y15 w225 h20 r10 vGuiAppSection gGuiAppSectionChange
-  Gui, Add, Button, x240 y15 w20 h20 gGuiAppSectionRemove , -
+  Gui, Add, Text, x10 y5, Process name (chrome.exe) or window class:
+  Gui, Add, ComboBox, x10 y20 w225 h20 r10 vGuiAppSection gGuiAppSectionChange
+  Gui, Add, Button, x240 y20 w20 h20 gGuiAppSectionRemove , -
   Gui, Add, GroupBox, x10 y42 w250 h76 , Scroll Method
   Gui, Add, Text, x20 y63 w10 h10 , Y
   Gui, Add, Text, x20 y93 w10 h10 , X
@@ -1150,10 +1157,10 @@ GuiAppSettings:
   Gui, Add, Edit, x150 y140 w40 h20 vGuiSpeedX
   Gui, Add, UpDown
   Gui, Add, CheckBox, x195 y140 w50 h20 vGuiUseAccelerationX , Accel
-  Gui, Add, CheckBox, x20 y165 w85 h20 vGuiUseEdgeScrolling , Edge Scrolling
-  Gui, Add, Edit, x150 y165 w40 h20 vGuiEdgeScrollSpeed
+  Gui, Add, CheckBox, x20 y165 w100 h20 vGuiUseEdgeScrolling , Edge Scrolling
+  Gui, Add, Edit, x150 y170 w40 h20 vGuiEdgeScrollSpeed
   Gui, Add, UpDown
-  Gui, Add, Text, x195 y168 w60 h20 , Edge Speed
+  Gui, Add, Text, x195 y168 w60 r2, Edge Speed
   
   Gui, Add, GroupBox, x10 y200 w250 h110 , Options
   Gui, Add, CheckBox, x20 y220 w170 h20 vGuiScrollDisabled , Scroll Disabled
@@ -1208,6 +1215,12 @@ Return
 
 GuiAppApply:
   GuiControlGet, GuiAppSection
+  if (GuiAppSection = "")
+  {
+    MsgBox, Type in an application's process name, or window class, or process path
+    GuiControl, Focus, GuiAppSection
+    return
+  }
   temp=ScrollMethodX,ScrollMethodY,UseAccelerationX,UseAccelerationY,UseEdgeScrolling,ScrollDisabled,UseScrollMomentum,InvertDrag,UseMovementCheck,SpeedX,SpeedY,EdgeScrollSpeed
   Loop, Parse, temp, `,
   {
@@ -1279,6 +1292,14 @@ GuiAllEvent:
     GuiControl, +cDefault, %A_GuiControl%
 Return
 
+; Disable script while in XButton chord
+~XButton1::
+~XButton1 up::
+  ScrollDisabled := !ScrollDisabled
+  GoSub, DragStop ; safety measure. force stop all drags
+  gosub mnuEnabledInit
+return
+
 GuiAllOk:
   GuiControlGet, temp, ,Button
   Hotkey, %temp%,, UseErrorLevel
@@ -1319,7 +1340,6 @@ MenuInit:
 
 Menu, mnuScript, ADD, Reload, mnuScriptReload
 Menu, mnuScript, ADD, Reload Settings, LoadLocalSettings
-Menu, mnuScript, ADD, Reload Server-Settings, LoadServerSettings
 
 Menu, mnuScript, ADD, Debug, mnuScriptDebug
 
@@ -1337,7 +1357,7 @@ Menu, mnuScript, Add, Open Discussion, mnuScriptOpenDiscussion
 ;
 
 Menu, mnuSettings, ADD, All Settings, GuiAllSettings
-Menu, mnuSettings, ADD, App Settings, GuiAppSettings
+Menu, mnuSettings, ADD, App Specific Settings, GuiAppSettings
 
 
   
@@ -1620,4 +1640,3 @@ ToolTip(Text, visibleSec=2)
   ToolTip
   Return
 }
-
