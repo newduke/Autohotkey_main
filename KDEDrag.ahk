@@ -1,4 +1,5 @@
 
+
 ; This script was inspired by and built on many like it
 ; in the forum. Thanks go out to ck, thinkstorm, Chris,
 ; and aurelian for a job well done.
@@ -17,6 +18,8 @@
 ;
 ; You can optionally release Alt after the first
 ; click rather than holding it down the whole time.
+
+; TODO: fix conflict with RButton and DragToScroll
 
 DoubleAlt := False ; Re-initialize DoubleAlt.
 
@@ -39,11 +42,11 @@ KeyStates()
 
 ; I decided I liked being able to alt + click, so I use double-alt + click to access native
 ; alt + click behavior.
-#If !DoubleAlt and !WinActive("ahk_class MultitaskingViewFrame")
+#If !DoubleAlt and !WinActive("ahk_class MultitaskingViewFrame") and !tildeHeld
 
 Alt & LButton::
 KSM := KeyStates()
-if (KSM != "!" or WinActive("ahk_class MultitaskingViewFrame"))
+if (KSM != "!" or WinActive("ahk_class MultitaskingViewFrame") or tildeHeld)
 {
 	; fake the action
 	MouseClick, Left,,,,,D
@@ -216,6 +219,14 @@ Alt & WheelDown::AltTab
 Alt & WheelUp::ShiftAltTab
 #If
 
+; Don't activate drag if tilde is held. This allows for faster alt-clicking as well as protects the script from 
+; my alt-~ binding for discord push-to-talk.
+*~`::
+	tildeHeld:=1
+return
+*~` up::
+	tildeHeld:=0
+return
 ; This code detects "double-clicks" of
 ; the Alt key.
 ~Alt::
@@ -228,6 +239,10 @@ Alt & WheelUp::ShiftAltTab
 	If Errorlevel ; If it never comes or takes too long, DoubleAlt remains false.
 		return
 	DoubleAlt := True ; Otherwise, it's true until Alt is released (activating this hotkey again).
+	; Double-click Alt to bring mouse window to top.
+	MouseGetPos,,,KDE_id
+	WinSet,AlwaysOnTop ,Toggle ,ahk_id %KDE_id%
+	WinSet,AlwaysOnTop ,Toggle ,ahk_id %KDE_id%
 	KeyWait,Alt,U T20 ; ... and the next press.
 	DoubleAlt := False ; reset DoubleAlt when Alt is release (or times out)
 return

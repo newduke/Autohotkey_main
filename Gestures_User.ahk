@@ -158,20 +158,33 @@ Gesture_D_L:
 return
 
 Gesture_R_U:
+Gesture_R_U_R:
     MouseGetPos,,,KDE_id
     WinActivate, ahk_id %KDE_id%
     WinGet,KDE_Win,MinMax,ahk_id %KDE_id%
 
-    if (WinActive("ahk_class MozillaWindowClass") or WinActive("ahk_class Chrome_WidgetWin_0")
-    or WinActive("ahk_class Chrome_WidgetWin_1") or WinActive("ahk_class QWidget" /* VLC */)) {
-        ;if (WinActive("Netflix - ")) {
-        ;    Send, {f11}{Esc}f
-        ;} else {
-            If KDE_Win
+    if (WinActive("ahk_class MozillaWindowClass") || WinActive("ahk_class Chrome_WidgetWin_0")
+        || WinActive("ahk_class Chrome_WidgetWin_1") || WinActive("ahk_class QWidget" /* VLC */)) {
+        if (m_gesture = "_R_U_R") {
+            ; Theater mode
+            if (WinActive("- Twitch -")) {
+                send, !{t}
+            } else if  (WinActive("- YouTube -")) {
+                send, {t}
+            } else {
+                send, {f11}
+            }
+        } else {
+            if (WinActive("- Twitch -")) {
+                send, f
+            ; } else if  (WinActive("- YouTube -")) {
+            ;    send, f 
+            } else if (KDE_Win && !WinActive("ahk_class MozillaWindowClass")) {
                 WinRestore,ahk_id %KDE_id%
-            Else
+            } else {
                 Send, {f11}
-        ;}
+            }
+        }
         return
     } else if (WinActive("ahk_class QWidget")) {
         Send, f
@@ -191,6 +204,17 @@ Gesture_RButton:
         WinSet AlwaysOnTop, Toggle, %ActiveWin%
     } else if (m_gesture = "_U") {
         SendInput, {Media_Play_Pause}
+    } else if (WinActive("ahk_class MozillaWindowClass")) {
+        Send,!b
+        Sleep, 100
+        Send, l{Enter}
+        clipboard := "" ; Empty the clipboard
+        Sleep, 200
+        Send, ^c^l^a
+        ClipWait, .5
+        Sleep, 100
+        Send, ^v{enter}
+        Send, ^{Tab}
     } else {
         Send, ^c
     }
@@ -277,6 +301,14 @@ Gesture_WheelUp:
         } else {
             sendKeys((up ? "+" :"") "^{tab}")
         }
+    }
+return
+
+Gesture_U:
+    if (WinActive("ahk_class MozillaWindowClass")) {
+        Send,{home}
+    } else {
+        Send,{Esc}
     }
 return
 

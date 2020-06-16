@@ -1,5 +1,4 @@
 ; regsvr32 WMIUTILS.DLL
-; TODO OSD for clock
 ; -------------------------------------------------------------------------
 ; AutoHotkey.ahk
 ; author: Jordan Weitz (newduke@gmail.com)
@@ -8,9 +7,14 @@
 ;
 ; setup
 ;
+
+; #InstallMouseHook
 ; various other scripts to run
-#include ArrowKeyS.ahk
+; #include ArrowKeyS.ahk
+; #include VimKey.ahk
 #Include GesturesS.ahk
+; #Include logging.ahk
+global shiftState := ""
 
 SetWinDelay,2
 CoordMode,Mouse
@@ -45,13 +49,15 @@ fs := 2
 SetTimer, ScriptStartup, -50
 
 ; TODO: integrate into this script
-run, DragToScroll2.ahk
+run, DragToScroll.ahk
 
 #include misc_library.ahk
 #include CheckFullScreen.ahk
 #Include, MediaControls.ahk
 ; #include ErgoBreaks.ahk
-#include ArrowKey.ahk
+
+#include VimKey.ahk
+; #include ArrowKey.ahk
 
 ; currently must be last include
 #Include Gestures.ahk
@@ -63,6 +69,7 @@ return
 
 ; Run once at startup, handle configuration, etc.  -------------------------
 ScriptStartup:
+	VimSetup()
 	; gosub SetupSpeedReader
 
 	; gosub SetupErgoBreak
@@ -92,7 +99,12 @@ return
 ; --------------------------------------------------------------------------
 
 ^!r::gosub ScriptReload
-^!e::run, %A_Editor% AutoHotkey.ahk, %A_ScriptDir%
+^!e::
+	run, %A_Editor% "AutoHotkey Main.code-workspace", %A_ScriptDir%
+	run, %A_Editor% AutoHotkey.ahk, %A_ScriptDir%
+return
+; ^!e::run, %A_Editor% AutoHotkey.ahk, %A_ScriptDir%
+
 ; ^!t::run, %A_Editor% %A_ScriptDir%\Specific\%LastScriptFile%
 ^+!Space::Suspend 
 
@@ -103,19 +115,25 @@ return
 
 ; Navigate Chrome tabs
 #if WinActive("Window Manager - Google Chrome") or WinActive("Window Manager - Brave")
-~^Enter::SendInput, {Tab}{Down}{Enter}
+~^Enter::
+	SaveCapsDownState()
+	SendEvent, {Tab}{Down}{Enter}
+	RestoreCapsDownState()
+return
 #if
+
 ^!w::
 OpenTabSearch:
-	; Send, {LWin Up}
+	SaveCapsDownState()
 	SendInput, +!w
 	WinWait, Window Manager - Brave, , .5
 	WinActivate
 	WinWaitActive, Window Manager - Brave, , .5
-	Sleep, 1
-	SendEvent, {text}^l
-	Sleep, 1
-	SendInput, {Tab}^a
+	Sleep, 100
+	SendPlay, ^l
+	Sleep, 100
+	SendPlay, {Tab}^a
+	RestoreCapsDownState()
 return
 
 ; The up key on the logitech is in a weird spot
@@ -143,7 +161,7 @@ Beeep() {
 }
 
 ; Select the currently focused word
-^+;::SendInput, {right}{Ctrl Down}{left}+{right}{Ctrl Up}
+^+w::SendInput, {right}{Ctrl Down}{left}+{right}{Ctrl Up}
 
 ; Set a sleep timer
 ^#!s::
@@ -160,6 +178,8 @@ return
 ; ----------------------------------------------------------------------------
 ; --------------------- Navigating and program launching ---------------------
 ; ----------------------------------------------------------------------------
+#o::Send, ^#{Left}
+#p::Send, ^#{Right}
 #If WinActive("ahk_exe Code.exe") and WinActive(".ahk -")
 	F1::
 		SendInput, {right}{CtrlDown}{right}+{left}^c{CtrlUp}
@@ -179,73 +199,27 @@ return
 			DebugTip("Not found here!")
 			return
 		}
-		DebugTip("waiting...")
+		OSD("waiting...")
 		sleep, 100
-		DebugTip("sending...")
-		Send, ^l{Tab}{Esc}!c!n{Esc}gi
+		OSD("sending...")
+		SetKeyDelay, 10, , Play
+		SetKeyDelay, 10, , 
+		SendEvent, ^l{Tab}{Esc}!ngi
+		SendEvent, ^a^v{Enter}
+		SendEvent, {Esc}w
 		sleep, 100
-		Send, ^a^v{Enter}{Esc}
-		sleep, 100
-		Send, wgg
+		SendEvent, gg
 	return
 #If
-; F1::
-AutoHotkeyCommands(q:="") {
-	static command
-	; global c := q
-	; ToolTipTime(QuotedVar("c"))
-	url:="https://autohotkey.com/docs/commands/"
-	
-	If (q="")	
-		If !(q:=Trim(CtrlC()," `t`n`r"))
-			Return
-	If !(0 command){
-		html:=UrlDownloadToVar(url), command:={}, i:=1
-		While i:=RegExMatch(html,"<a href=""([^""]*)"">([^<]*)</a>",s,i+1)
-			command[s2]:=s1
-	}
-	; global c := command
-	; ToolTipTime(QuotedVar("c"))
-
-	If (v:=command[q]) || (v:=command[q "()"])
-		t:=url v
-	Else
-		For k,v in command
-			If InStr(k,q){
-				t:=url v
-				Break
-			}
-	If t
-		Run % t	
-Return
-}
-CtrlC(){
-	WholeClipBoard:=ClipBoardAll
-	ClipBoard =
-	Send ^c
-	ClipWait,.3
-	str:=ClipBoard
-	ClipBoard:=WholeClipBoard
-	Return, str
-}
-; This is erroring
-UrlDownloadToVar(URL) {
-	ComObjError(false)
-	WebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-	WebRequest.SetTimeouts(5000, 5000, 3000, 3000)
-	WebRequest.Open("GET", URL)
-	WebRequest.Send()
-	TooltipTime("doh!" . A_LastError,3000)
-	Return WebRequest.ResponseText
-}
 
 #m:: WinMinimize, A
++#m:: win:=MaximizeRestore("A")
 
 ; Run window spy
 #w::Run, "C:\Program Files\AutoHotkey\AU3_Spy.exe"
 
-#t::RunRestoreHideApp("Hangouts", "")
-; #t::
+; #t::RunRestoreHideApp("Hangouts", "")
+#t::
 	; RunRestoreHideApp("Hangouts", "")
 	SetTitleMatchMode, 2
 	OSD(A_DDD . " " . A_DD . " " . A_MMMM . " " . A_YYYY . "  " . A_Hour . ":" . A_Min, 2000)
@@ -254,7 +228,6 @@ UrlDownloadToVar(URL) {
 		return
 	}
 	Gosub, OpenTabSearch
-	Sleep, 1000
 	SendInput, hangouts{Tab}{Down}{Enter}
 return
 
@@ -266,7 +239,8 @@ return
 		return
 	}
 	Gosub, OpenTabSearch
-	SendInput, workf{Tab}{Down}{Enter}
+	; SendInput, workf{Tab}{Down}{Enter}
+	SendInput, roam newduke{Tab}{Down}{Enter}
 return
 	
 ;   GroupAdd, Tasks, ahk_exe brave.exe,,,,Hangouts
@@ -295,10 +269,13 @@ return
 	return
 ^#k::
 #k::
-	GroupAdd, Chrome, ahk_class Chrome_WidgetWin_0,,,,ahk_exe Spotify.exe
-	GroupAdd, Chrome, ahk_class Chrome_WidgetWin_1,,,,ahk_exe Spotify.exe
-	; RunCycleApp("Chrome", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
-	RunCycleApp("Chrome", "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe", "ctrl")
+	; TODO: Only select real brave windows
+	; GroupAdd, Chrome, ahk_class Chrome_WidgetWin_0,,,,ahk_exe Spotify.exe
+	; GroupAdd, Chrome, ahk_class Chrome_WidgetWin_1,,,,ahk_exe Spotify.exe
+	GroupAdd, Browser, ahk_exe chrome.exe,,,,Hangouts
+	GroupAdd, Browser, ahk_exe brave.exe,,,,Hangouts
+	; RunCycleApp("Browser", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
+	RunCycleApp("Browser", "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe", "ctrl")
 return
 ^#j::
 #j::
