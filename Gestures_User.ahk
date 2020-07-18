@@ -164,7 +164,7 @@ Gesture_R_U_R:
     WinGet,KDE_Win,MinMax,ahk_id %KDE_id%
 
     if (WinActive("ahk_class MozillaWindowClass") || WinActive("ahk_class Chrome_WidgetWin_0")
-        || WinActive("ahk_class Chrome_WidgetWin_1") || WinActive("ahk_class QWidget" /* VLC */)) {
+        || WinActive("ahk_class Chrome_WidgetWin_1") || WinActive("ahk_exe vlc.exe")) {
         if (m_gesture = "_R_U_R") {
             ; Theater mode
             if (WinActive("- Twitch -")) {
@@ -175,7 +175,7 @@ Gesture_R_U_R:
                 send, {f11}
             }
         } else {
-            if (WinActive("- Twitch -")) {
+            if (WinActive("- Twitch -") || WinActive("ahk_exe vlc.exe")) {
                 send, f
             ; } else if  (WinActive("- YouTube -")) {
             ;    send, f 
@@ -186,17 +186,15 @@ Gesture_R_U_R:
             }
         }
         return
-    } else if (WinActive("ahk_class QWidget")) {
-        Send, f
-        return
     } else if (WinActive("ahk_exe zoom.exe")) {
         Send, !f
     }
 
-    If KDE_Win
-    WinRestore,ahk_id %KDE_id%
-    Else
-    WinMaximize,ahk_id %KDE_id%
+    If (KDE_Win) {
+        WinRestore,ahk_id %KDE_id%
+    } Else {
+        WinMaximize,ahk_id %KDE_id%
+    }
 return
 
 Gesture_RButton:
@@ -279,9 +277,9 @@ Gesture_WheelUp:
     } else if (m_gesture = "_L") {
         ; Repeat find
         if (WinActive("ahk_class SciTEWindow")) {
-            sendKeys ((up ? "+" :"") "F3")
+            sendKeys((up ? "+" :"") "F3")
         } else if (WinActive("ahk_class Chrome_WidgetWin_1")) {
-            sendKeys ((up ? "+" :"") "^g")
+            sendKeys((up ? "+" :"") "^g")
         }
     } else if (m_gesture = "_D") {
         ; Navigate desktops
@@ -292,17 +290,24 @@ Gesture_WheelUp:
             MouseGetPos,,,KDE_id
             WinActivate, ahk_id %KDE_id%
         }
-        if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS")) {
-            sendKeys("^" (up ? "{PgUp}" : "{PgDn}"))
-        } else if (WinActive("ahk_exe Code.exe")) {
-            sendKeys("^" (up ? "{PgUp}" : "{PgDn}"))
-        } else if (WinActive("ahk_class ShImgVw:CPreviewWnd")) {
-            sendKeys(up ? "{Left}" : "{Right}")
-        } else {
-            sendKeys((up ? "+" :"") "^{tab}")
-        }
+        NavigateTabs(up)
     }
 return
+
+![::NavigateTabs(1)
+!]::NavigateTabs(0)
+
+NavigateTabs(up:=0) {
+    if (WinActive("ahk_class SciTEWindow") || WinActive("ahk_class PX_WINDOW_CLASS")) {
+        sendKeys("^" (up ? "{PgUp}" : "{PgDn}"))
+    } else if (WinActive("ahk_exe Code.exe") || WinActive("ahk_exe brave.exe")) {
+        sendKeys("^" (up ? "{PgUp}" : "{PgDn}"))
+    } else if (WinActive("ahk_class ShImgVw:CPreviewWnd")) {
+        sendKeys(up ? "{Left}" : "{Right}")
+    } else {
+        sendKeys((up ? "+" :"") "^{tab}")
+    }
+}
 
 Gesture_U:
     if (WinActive("ahk_class MozillaWindowClass")) {

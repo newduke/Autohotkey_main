@@ -5,9 +5,9 @@ global Console
 
 LogInitGUI(title:="Logger", visible:=0) {   
     Gui, LogGUI:New
-    Gui LogGUI:+AlwaysOnTop ; I wanted this to stay on top even though there are other windows opening and being moved around.
-    Gui, LogGUI:Add, Edit, x10 y10 w400 h250 vConsole
-    Gui, LogGUI:Show, x100 y100 w420 h270, %title% - AutoHotkey
+    ; Gui LogGUI:+AlwaysOnTop ; I wanted this to stay on top even though there are other windows opening and being moved around.
+    Gui, LogGUI:Add, Edit, x10 y10 w600 h600 vConsole
+    Gui, LogGUI:Show, x2100 y100 w620 h620, %title% - AutoHotkey
     if (!visible) {
         Gui, LogGUI:Minimize 
     }

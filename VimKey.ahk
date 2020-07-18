@@ -17,9 +17,14 @@ VimSetup() {
     keyMap["j"] := "{Left}"
     keyMap["k"] := "{Down}"
     keyMap["l"] := "{Right}"
+    keyMap["h"] := "{Delete}"
+    ; keyMap["i"] := "{Delete}"
+    ; keyMap["j"] := "{Down}"
+    ; keyMap["k"] := "{Up}"
+    ; keyMap["l"] := "{Right}"
+    ; keyMap["h"] := "{Left}"
     keyMap["u"] := "{Home}"
     keyMap["o"] := "{End}"
-    keyMap["h"] := "{Delete}"
     keyMap[";"] := "{Backspace}"
     keyMap["m"] := "{PgUp}"
     keyMap[","] := "{PgDn}"
@@ -38,13 +43,14 @@ return
 
 *CapsLock::
     if (capsDown) {
-        Log("down held, ignoring")
+        ; Log("down held, ignoring")
         return
     }
     capsDownStartTime := A_TickCount
     capsDown := 1    
 	Send {RControl Down}
-    if (GetKeyState("Shift")) {
+    ; if (GetKeyState("Shift")) {
+    if (EnterDown) {
         ChangeMode("vim")
         enterVimMode := 1
     } else if (waitForEnter) {
@@ -55,7 +61,7 @@ return
         ChangeMode("quick vim")
         vimMode := "quick vim"
     }
-    OSD(vimMode)
+    ; OSD(vimMode)
 Return
 
 *CapsLock up::
@@ -79,15 +85,41 @@ Return
     enterVimMode := 0
 Return
 
+; Enter acts like chord key for launching apps, just enter when pressed alone
+Enterdown := 0
+Enter::
++Enter::
+    hotkey := LTrim(A_ThisHotkey, " +!#^*")
+    if (%hotkey%down) {
+        Send, {Enter}
+        return
+    }
+    %hotkey%StartTime := A_TickCount
+    %hotkey%down := 1    
+Return
+
+~*Enter up::
+    hotkey := RegExReplace(A_ThisHotkey, " up")
+    hotkey := LTrim(hotkey, " +!#^*~")
+
+    %hotkey%PressDuration := A_TickCount - %hotkey%StartTime
+    if (%hotkey%down && A_PriorKey=hotkey && %hotkey%PressDuration < 300) {
+        Suspend On
+        Send, {Blind}{Enter}
+        Suspend Off
+    }
+    %hotkey%down := 0
+Return
+
 EnterVimMode:
 return
 
 ChangeMode(newMode) {
-    Log("Change Mode: " newMode)
     global vimMode, waitForEnter := ""
     global vimNum, vimChord, oldMode := vimMode
+    ; Log("Change Mode: " newMode)
+    ; OSD(vimMode)
     vimMode := newMode
-    OSD(vimMode)
     if (vimMode = "vim") {
         enterVimMode := 1
         vimNum := 0
@@ -96,7 +128,15 @@ ChangeMode(newMode) {
 }
 
 #if waitForEnter
-~enter::ChangeMode(waitForEnter)
+~enter::
+ChangeMode(waitForEnter)
+return
+
+#if Enterdown
+a::goto OpenWorkflowy
+y::goto OpenYoutube
+t::goto OpenHangouts
++t::goto OpenHangouts
 
 #If vimMode = "vim" || vimMode = "visual"
 0::
@@ -126,7 +166,6 @@ z::MultiActionN("keyStuff", "undo", "^{z}")
 ; y::MultiActionN("keyStuff", "redo", "^{y}")
 +z::MultiActionN("keyStuff", "redo", "^{y}")
 
-~enter::ChangeMode("normal")
 a::ChangeMode("normal") ; change mode without inserting any keys
 
 ; Chords --------------------------------------------------------------------
@@ -217,11 +256,12 @@ return
         states["shiftState"] := 1
     }
     stuffKey := keyMap[original_key]
-    if (GetKeyState("LCtrl") && InStr("ik", original_key)) {
+	SetTitleMatchMode, 2
+    if (GetKeyState("LCtrl") && InStr("{up}{down}", stuffKey) && !WinActive("WorkFlowy -")) {
         vimNum := 6
         states["ctrlState"] := 0
         MultiAction("KeyStuff", [stuffKey, states]*)
-    } else if (!vimNum && InStr("ijkl", original_key)) {
+    } else if (!vimNum && InStr("{up}{down}{left}{right}", stuffKey)) {
         held%original_key% := 0
         vimChord := ""
     	RapidFire(250, 10, original_key, held%original_key%, "keyStuff", [stuffKey, states]*)
@@ -242,7 +282,7 @@ MultiActionN(action, name, params*) {
 }
 
 MultiAction(action, params*) {
-    global vimNum
+    global vimNum := Min(vimNum, 500)
     global vimChord
     global lastAction := action
     global lastNum := vimNum
@@ -271,7 +311,8 @@ KeyStuff(count, params*) {
         key := RegExReplace(key, "}$", " " count "}")
     }
     sent := KSM . key
-    OSD(sent)
+    ; OSD(sent)
+    ; Log(sent)
     Send %sent%
 }
 

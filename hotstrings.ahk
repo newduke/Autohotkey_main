@@ -11,21 +11,28 @@
 ; ::1184::1184 Florida Street, San Francisco, CA 94110
 ; ::1550::1550 5th St, Oakland, CA 94607
 :*:285*::2853 Sacrament St, Berkeley, CA 94702
+:*:947*::9471 La Jolla Shores Dr, La Jolla, CA 92037
 :*:206*::206-289-0213
 :*:hihii::
 	SendInput, Hi hi. Finesse (reverse, bluff) ok with everyone?
 return
 ::jauth::author: Jordan Weitz (newduke@gmail.com)
 ::cliche::clich� 
-::<?<?::
-	Send, <?php{enter} ?>{left 3}
-return
+; ::<?<?::
+; 	Send, <?php{enter} ?>{left 3}
+; return
 
-:C:#DATE:: ; #2020-06-02
+:C*:/TIME:: ; #08:00
+:C:/T::
+	FormatTime, militaryTime,, HH:mm
+	SendRaw, % militaryTime " "
+return
+:C*:/DATE:: ; #2020-06-02
 	SendRaw, % "#" . A_YYYY . "-" . A_MM . "-" . A_DD
 return
 
 :C:DATE:: ; 02 Jun 2020
+:C:/D::
 	send, % A_DD . " " . A_MMM . " " . A_YYYY
 return
 

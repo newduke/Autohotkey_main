@@ -362,6 +362,7 @@ Critical
    ; Initialize DragStatus, indicating a new click
    DragStatus := DS_NEW
    Mileage := 0
+   Remainder := 0
    GoSub, Reset
 
    ; Keep track of the last two click times.

@@ -21,12 +21,14 @@ CoordMode,Mouse
 ;SendMode, Input
 
 ; common variables ---------------------------------------------------------
-global A_Editor
+global browserExe := "ahk_exe brave.exe"
+global chromeExe :=  "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+global browserLocation := "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
 ; A_Editor = "C:\Program Files\TextPad 4\TextPad.exe"
 ; A_Editor = "C:\Program Files\AutoHotkey\SciTE\SciTE.exe"
 ; A_Editor = "c:\Windows\Notepad.exe"
 ; A_Editor = "C:\Program Files\Sublime Text 2\Sublime_text.exe"
-A_Editor = "C:\Users\Jordan\AppData\Local\Programs\Microsoft VS Code\Code.exe"
+global A_Editor = "C:\Users\Jordan\AppData\Local\Programs\Microsoft VS Code\Code.exe"
 
 global DebugLevel := 0
 ; DebugLevel := 3
@@ -62,6 +64,7 @@ run, DragToScroll.ahk
 ; currently must be last include
 #Include Gestures.ahk
 #Include KDEDrag.ahk
+; #Include, Chord.ahk
 
 ; All code below has no context
 #if
@@ -69,13 +72,17 @@ return
 
 ; Run once at startup, handle configuration, etc.  -------------------------
 ScriptStartup:
+	; LogInitGUI(,1)
 	VimSetup()
+	; MakeChord("Enter", "a", "OpenWorkflowy")
+	; MakeChord("Enter", "t", "OpenHangouts")
+	; MakeChord("Enter", "u", "Home")
+	; MakeChord("Enter", "o", "End")
 	; gosub SetupSpeedReader
-
 	; gosub SetupErgoBreak
 	IniRead, timeLeft, hotkeys.ini, Ergo, timeLeft, % 20*60
 	IniRead, eb_field, hotkeys.ini, Ergo, eb_field, % eb_field
-	if (eb_fie= "") {
+	if (eb_field= "") {
 		eb_field := 1
 		DebugTip("field was empty")
 	}
@@ -161,7 +168,7 @@ Beeep() {
 }
 
 ; Select the currently focused word
-^+w::SendInput, {right}{Ctrl Down}{left}+{right}{Ctrl Up}
+^+q::SendInput, {right}{Ctrl Down}{left}+{right}{Ctrl Up}
 
 ; Set a sleep timer
 ^#!s::
@@ -178,6 +185,7 @@ return
 ; ----------------------------------------------------------------------------
 ; --------------------- Navigating and program launching ---------------------
 ; ----------------------------------------------------------------------------
+; Navigate between virtual desks
 #o::Send, ^#{Left}
 #p::Send, ^#{Right}
 #If WinActive("ahk_exe Code.exe") and WinActive(".ahk -")
@@ -219,47 +227,39 @@ return
 #w::Run, "C:\Program Files\AutoHotkey\AU3_Spy.exe"
 
 ; #t::RunRestoreHideApp("Hangouts", "")
++#t::
 #t::
-	; RunRestoreHideApp("Hangouts", "")
-	SetTitleMatchMode, 2
-	OSD(A_DDD . " " . A_DD . " " . A_MMMM . " " . A_YYYY . "  " . A_Hour . ":" . A_Min, 2000)
-	If (WinActive("Hangouts - ")) {
-		WinMinimize
+OpenHangouts:
+	global chromeExe
+	keyHeld := GetKeyState("shift")
+	if (keyHeld) {
+		OpenBrowserTab("Messenger", "Messenger |")
 		return
 	}
-	Gosub, OpenTabSearch
-	SendInput, hangouts{Tab}{Down}{Enter}
+
+	windowName := "Hangouts"
+	If (WinActive(windowName)) {
+		WinMinimize
+		return
+	} else if (WinExist(windowName)) {
+		WinActivate
+		return
+	} else {
+		OSD("run chrome " chromeExe)
+		Run, %chromeExe%
+	}
 return
 
+OpenWorkflowy:
 #a::
-	SetTitleMatchMode, 2
-	OSD(A_DDD . " " . A_DD . " " . A_MMMM . " " . A_YYYY . "  " . A_Hour . ":" . A_Min, 2000)
-	If (WinActive("WorkFlowy - ")) {
-		WinMinimize
-		return
-	}
-	Gosub, OpenTabSearch
-	; SendInput, workf{Tab}{Down}{Enter}
-	SendInput, roam newduke{Tab}{Down}{Enter}
+	OpenBrowserTab("WorkFlowy")
 return
 	
-;   GroupAdd, Tasks, ahk_exe brave.exe,,,,Hangouts
-; 	GroupActivate, Tasks
-; 	WinWaitActive, ahk_group Tasks, , .5
-; 	if (ErrorLevel) {
-; 		Run, "https://WorkFlowy.com/#",
-; 		WinWaitActive, ahk_group Tasks, , 1
-; 	}
+OpenYoutube:
+#y::
+	OpenBrowserTab("youtube",,0)
+return
 	
-; 	If (ErrorLevel) {
-; 		DebugTip("Not found")
-; 		return
-; 	}
-; 	Send,!w
-; 	Sleep, 100
-; 	Send,{Enter}
-; return
-
 #s::RunRestoreHideApp("ahk_class ENMainFrame","C:\Program Files (x86)\Evernote\Evernote\evernote.exe")
 
 ^#e::
@@ -269,34 +269,65 @@ return
 	return
 ^#k::
 #k::
+	OpenBrowser()
+return
+
+OpenBrowserTab(tabName, windowName:="", launch:=1) {
+	windowName := windowName ? windowName : tabName . " - "
+	SetTitleMatchMode, 2
+	; OSD(A_DDD . " " . A_DD . " " . A_MMMM . " " . A_YYYY . "  " . A_Hour . ":" . A_Min, 2000)
+	If (WinActive(windowName)) {
+		WinMinimize
+		return
+	} else if (WinExist(windowName)) {
+		WinActivate
+		return
+	}
+	OpenBrowser(1, 1)
+	SendInput, {ShiftUp}
+	Suspend, on
+	Send, !q
+	Sleep, 200
+	Log(tabName)
+	SendRaw, %tabName%
+	Sleep, 300
+	if (launch) {
+		Send, {Enter}
+	}
+	Suspend, off
+	return
+}
+
+OpenBrowser(waitActive:=0, noCycle:=0) {
 	; TODO: Only select real brave windows
-	; GroupAdd, Chrome, ahk_class Chrome_WidgetWin_0,,,,ahk_exe Spotify.exe
-	; GroupAdd, Chrome, ahk_class Chrome_WidgetWin_1,,,,ahk_exe Spotify.exe
-	GroupAdd, Browser, ahk_exe chrome.exe,,,,Hangouts
+	; GroupAdd, Browser, ahk_exe chrome.exe,,,,Hangouts
 	GroupAdd, Browser, ahk_exe brave.exe,,,,Hangouts
 	; RunCycleApp("Browser", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
-	RunCycleApp("Browser", "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe", "ctrl")
-return
+	if (!noCycle || !WinActive("ahk_exe brave.exe")) {
+		OSD(browserLocation)
+		action := RunCycleApp("Browser", browserLocation, "ctrl")
+	}
+	if (waitActive) {
+		WinWaitActive, ahk_exe brave.exe,, .5
+	}
+	return action
+}
+
 ^#j::
 #j::
 	GroupAdd, Consoles, ahk_class ConsoleWindowClass
 	GroupAdd, Consoles, ahk_class mintty
 	GroupAdd, Consoles, ahk_exe Terminus.exe
-	; RunCycleApp("Consoles", "C:\Program Files\WindowsApps\CanonicalGroupLimited.Ubuntu18.04onWindows_2020.1804.7.0_x64__79rhkp1fndgsc\ubuntu1804.exe", "ctrl")
 	; RunCycleApp("Consoles", "cmd", "ctrl")
 	RunCycleApp("Consoles", "C:\Program Files\Terminus\Terminus.exe", "ctrl")
-	; RunCycleApp("Consoles", "c:\windows\system32\cmd", "ctrl")
-	;RunCycleApp("Consoles", "C:\cygwin64\bin\mintty.exe -i /Cygwin-Terminal.ico -", "ctrl")
-	; RunCycleApp("Consoles", "C:\Users\Jordan\AppData\Local\GitHub\GitHub.appref-ms --open-shell", "ctrl")
 return
 
 ; open github
-;#v::RunRestoreMinApp("GitHub ahk_class HwndWrapper[DefaultDomain;;6ef39290-3072-4acc-9987-9c336f2987b5]","C:\Users\Ash\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\GitHub Inc\GitHub.appref-ms")
+;#g::RunRestoreMinApp("GitHub ahk_class HwndWrapper[DefaultDomain;;6ef39290-3072-4acc-9987-9c336f2987b5]","C:\Users\Ash\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\GitHub Inc\GitHub.appref-ms")
 
 ^#n::
 #n::
 	GroupAdd, Code, ahk_exe Code.exe
-	; GroupAdd, Code, ahk_class Chrome_WidgetWin_1,,,,ahk_exe Spotify.exe
 	RunCycleApp("Code", A_Editor, "ctrl", "min")
 return
 
@@ -371,7 +402,7 @@ RunRestoreHideApp(title1,app, app2 := "") {
 ; chrome --------------------------------------------------------------------
 #IfWinActive, ahk_class Chrome_WidgetWin_1
 ; open bookmark in chrome
-#b::Send, {alt down}d{alt up}b{space}
+#b::Send, {alt down}d{alt up}*{space}
 
 #IfWinActive
 
@@ -433,3 +464,51 @@ return
 ; Temporary scripts -------------------------------------------------------
 ; -------------------------------------------------------------------------
 
+IsMappedWindow(this_id) {
+	WinGetPos,X,Y,W,H,ahk_id %this_id%
+	return !(X = 0 && Y = 0 && W = 0 && H = 0)
+}
+
+SaveWinCoords(this_id, wintitle) {
+	WinGetPos,X,Y,W,H,ahk_id %this_id%
+	WinGetTitle, title, ahk_id %this_id%
+	WinGetClass, klass, ahk_id %this_id%
+	coords := Join(",", [X,Y,W,H]*)
+	Log("coords: " title " " klass " " A_Index " ahk_id " this_id "---" coords)
+	IniWrite, % coords, hotkeys.ini, WinPos %wintitle%, %title%%klass%
+}
+
+LoadWinCoords(this_id, wintitle) {
+	; global
+	; Log("coords: " title " " this_class " " A_Index " ahk_id " this_id "---")
+	WinGetTitle, title, ahk_id %this_id%
+	WinGetClass, klass, ahk_id %this_id%
+	IniRead, coords, hotkeys.ini, WinPos %wintitle%, %title%%klass%
+	vals := StrSplit(coords, ",")
+	; Log(QuotedVar("vals"))
+	X := vals[1], Y := vals[2], W := vals[3], H := vals[4]
+	; Log(QuotedVar("X") QuotedVar("Y") QuotedVar("W") QuotedVar("H"))
+	; MsgBox, %vals1%, %vals2%, %vals3%, %vals4%
+	WinMove, ahk_id %this_id%,, %X%, %Y%, %W%, %H%
+	Log("coords: " title " " this_class " " A_Index " ahk_id " this_id "---" coords)
+}
+
+^!+1::
+	LoopWindows("ahk_exe Zoom.exe", "IsMappedWindow", "SaveWinCoords")
+return	
+
+^!1::
+	LoopWindows("ahk_exe Zoom.exe", "IsMappedWindow", "LoadWinCoords")
+return	
+
+LoopWindows(title, filter:=0, action:=0) {
+	WinGet, win_list, List, ahk_exe Zoom.exe 
+	Loop, %win_list%
+	{
+		this_id := win_list%A_Index%
+		if (filter && !(filter.(this_id)))
+			Continue
+		if (action) 
+			action.(this_id, title)
+	}
+}
