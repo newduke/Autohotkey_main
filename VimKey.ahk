@@ -70,6 +70,7 @@ Return
     if (waitForEnter) {
         waitForEnter := ""
         Send, {Esc}
+        enterVimMode := 0
         return
     }
     capsPressDuration := A_TickCount - capsDownStartTime
@@ -78,7 +79,7 @@ Return
         Send, {Esc}
         Suspend Off
         ChangeMode("normal")
-   }
+    }
     if (vimMode = "quick vim") {
         ChangeMode("normal")
     }
@@ -90,8 +91,9 @@ Enterdown := 0
 Enter::
 +Enter::
     hotkey := LTrim(A_ThisHotkey, " +!#^*")
+    gosub KeyStates
     if (%hotkey%down) {
-        Send, {Enter}
+        Send, {Blind}{Enter}
         return
     }
     %hotkey%StartTime := A_TickCount
@@ -105,7 +107,7 @@ Return
     %hotkey%PressDuration := A_TickCount - %hotkey%StartTime
     if (%hotkey%down && A_PriorKey=hotkey && %hotkey%PressDuration < 300) {
         Suspend On
-        Send, {Blind}{Enter}
+        Send, %KSM%{Enter}
         Suspend Off
     }
     %hotkey%down := 0
@@ -134,6 +136,7 @@ return
 
 #if Enterdown
 a::goto OpenWorkflowy
+q::goto OpenToggl
 y::goto OpenYoutube
 t::goto OpenHangouts
 +t::goto OpenHangouts

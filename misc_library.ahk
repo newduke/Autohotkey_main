@@ -41,56 +41,20 @@ HideOSD:
 	return
 }
 
-; OSD(text, time:=1000) {
-; 	; static
-; 	CoordMode, Mouse, Screen
-
-; 	; Settings
-; 	maxOnScreenChars := 60 ; Maximum number of characters that will be displayed
-; 	fontCharWidth := 27    ; Depends on resolution needs to be changed if 
-; 	textFont = Consolas     ; NOT WORKING Make sure to set fontCharWidth correclty and only use monospace fonts
-; 	bgColor = Black        ; background color of the gui
-; 	spaceStr := " "     ; This is the string that will appear when pressing the space key
-; 	counterPrefix := " x"
-
-; 	transN        := 100    ; 0=transparent, 255=opaque
-; 	ShowSingleKey := True  ; dislay A-Z, Enter and other keys pressed without modifier (Ctr, Alt, ...)
-; 	DisplayTime   := 500  ; time to fade, in milliseconds
-; 	DisplayTime2  := 2500
-
-; 	; Create GUI
-; 	Gui, +AlwaysOnTop -Caption +Owner +LastFound +E0x20
-; 	Gui, Margin, 0, 0
-; 	Gui, Color, bgColor
-; 	Gui, Font, cWhite s30 bold, Consolas
-; 	Gui, Add, Text, vHotkeyText Left x2
-; 	WinSet, Transparent, %transN%
-; 	Winset, AlwaysOnTop, On
-
-; 	GuiControl,, HotkeyText, %text%
-; 	GuiControl, Move, HotkeyText, +AlwaysOnTop w%text_w%
-
-; 	SetTimer, RemoveOSD, %time%
-; 	return
-; RemoveOSD:
-; 	SetTimer, RemoveOSD, Off
-; 	Gui, Hide
-; 	return
-; }
-
-; OSD2(text, time:=1000) {
-; 	#Persistent
-; 	; borderless, no progressbar, font size 25, color text 009900
-; 	Progress, hide Y600 W1000 b zh0 cwFFFFFF FM50 CT00BB00,, %text%, AutoHotKeyProgressBar, Backlash BRK
-; 	WinSet, TransColor, FFFFFF 255, AutoHotKeyProgressBar
-; 	Progress, show
-; 	SetTimer, RemoveToolTip, %time%
-; 	return
-; RemoveToolTip:
-; 	SetTimer, RemoveToolTip, Off
-; 	Progress, Off
-; 	return
-; }
+; https://autohotkey.com/board/topic/7718-mbutton-close-windowstaskbartitlebar-open-ie-links/
+InTitleBar(win_id:=0) {
+	; if (!win_id) {
+		MouseGetPos, ClickX, ClickY, win_id
+	; }
+	SendMessage, 0x84,, ( ClickY << 16 )|ClickX,, ahk_id %win_id% 
+	WM_NCHITTEST_Result = %ErrorLevel%
+	if WM_NCHITTEST_Result in 2,3,8,9,20,21 
+	{ ; in titlebar enclosed area - top of window
+		; OSD(WM_NCHITTEST_Result)
+		return win_id
+	}
+	return 0
+}
 
 ToolTipTime(tip, time = 1000) {
 	ToolTip, % tip

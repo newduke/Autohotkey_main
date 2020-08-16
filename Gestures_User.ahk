@@ -254,6 +254,11 @@ sendKeys(keys) {
     send %keys%
 }
 
+Show_Volume:
+    SoundGet, vol
+    OSD(Round(vol))
+return
+
 Gesture_WheelDown:
 Gesture_WheelUp:
     up := A_ThisHotkey == "*WheelUp"
@@ -269,11 +274,16 @@ Gesture_WheelUp:
         if WinActive("ahk_exe Spotify.exe") {
             sendKeys("^" (up ? "{Up}" : "{Down}"))
         } else {
-            sendKeys("{Volume_" . (up ? "Up" : "Down") . " 2}")
-            Sleep 100
             SoundGet, vol
+            sendKeys("{Volume_" . (up ? "Up" : "Down") . " 2}")
+            vol += 4*(up ? 1 : -1)
             OSD(Round(vol))
-        }
+            ; Critical Off ; Allow interruption temporarily.
+            ; Thread, NoTimers, false
+            ; SetTimer, Show_Volume, -100
+            ; Sleep, 10
+            ; gosub Show_Volume
+       }
     } else if (m_gesture = "_L") {
         ; Repeat find
         if (WinActive("ahk_class SciTEWindow")) {

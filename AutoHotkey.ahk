@@ -9,6 +9,7 @@
 ;
 
 ; #InstallMouseHook
+
 ; various other scripts to run
 ; #include ArrowKeyS.ahk
 ; #include VimKey.ahk
@@ -65,6 +66,7 @@ run, DragToScroll.ahk
 #Include Gestures.ahk
 #Include KDEDrag.ahk
 ; #Include, Chord.ahk
+; #Include, ../WindowPadX/WPXA.ahk
 
 ; All code below has no context
 #if
@@ -118,7 +120,12 @@ return
 #[::Click, WheelUp
 #]::Click, WheelDown
 
-#Space::SendInput, {AppsKey}
+#Space::
+keywait, LWin
+keywait, RWin
+; Send, {AppsKey}
+SendEvent, +{F10}
+return
 
 ; Navigate Chrome tabs
 #if WinActive("Window Manager - Google Chrome") or WinActive("Window Manager - Brave")
@@ -245,7 +252,6 @@ OpenHangouts:
 		WinActivate
 		return
 	} else {
-		OSD("run chrome " chromeExe)
 		Run, %chromeExe%
 	}
 return
@@ -253,6 +259,11 @@ return
 OpenWorkflowy:
 #a::
 	OpenBrowserTab("WorkFlowy")
+return
+	
+OpenToggl:
+#q::
+	act := RunRestoreMinApp("- Toggl Desktop", "C:\Users\Jordan\AppData\Local\TogglDesktop\TogglDesktop.exe")
 return
 	
 OpenYoutube:
@@ -285,6 +296,7 @@ OpenBrowserTab(tabName, windowName:="", launch:=1) {
 	}
 	OpenBrowser(1, 1)
 	SendInput, {ShiftUp}
+	WinWaitActive, "ahk_exe brave.exe",, .1
 	Suspend, on
 	Send, !q
 	Sleep, 200
@@ -304,7 +316,7 @@ OpenBrowser(waitActive:=0, noCycle:=0) {
 	GroupAdd, Browser, ahk_exe brave.exe,,,,Hangouts
 	; RunCycleApp("Browser", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
 	if (!noCycle || !WinActive("ahk_exe brave.exe")) {
-		OSD(browserLocation)
+		; OSD(browserLocation)
 		action := RunCycleApp("Browser", browserLocation, "ctrl")
 	}
 	if (waitActive) {
@@ -501,6 +513,10 @@ return
 	LoopWindows("ahk_exe Zoom.exe", "IsMappedWindow", "LoadWinCoords")
 return	
 
+^!0::
+    WinMove, A,,0,0,500,500
+return
+
 LoopWindows(title, filter:=0, action:=0) {
 	WinGet, win_list, List, ahk_exe Zoom.exe 
 	Loop, %win_list%
@@ -511,4 +527,99 @@ LoopWindows(title, filter:=0, action:=0) {
 		if (action) 
 			action.(this_id, title)
 	}
+}
+
+; MonSwap - Swaps all the application windows from one monitor to another.
+; v1.0.1
+; Author: Alan Henager
+;
+; v1.0.1 - xenrik - Updated to use relative screen size when swapping
+
+
+; Set this key combination to whatever.
++#s::
+SwapAll:
+{
+  SetWinDelay, 0 ; This switching should be instant
+  DetectHiddenWindows, Off ; I think this is default, but just for safety's sake...
+  WinGet, WinArray, List ; , , , Sharp
+  ; Enable the above commented out portion if you are running SharpE
+
+  i := WinArray
+  Loop, %i% {
+	; if (A_Index > 100) {
+	; 	OSD("Max index reached")
+	; 	break
+	; }
+	; OSD("Max index reached: " A_Index)
+
+	WinID := WinArray%A_Index%
+	WinGetTitle, CurWin, ahk_id %WinID%
+	; If (CurWin = "") ; For some reason, CurWin <> didn't seem to work.
+	; {}
+	; OSD(QuotedVar("WinID"))
+
+	if (Curwin != "" && Curwin != "Setup") {
+		WinGet, IsMin, MinMax, ahk_id %WinID% ; The window will re-locate even if it's minimized
+		If (IsMin = -1) {
+			WinRestore, ahk_id %WinID%
+			SwapMon(WinID)
+			WinMinimize, ahk_id %WinID%
+		} else {
+			SwapMon(WinID)
+		}
+	}
+  }
+  OSD("swap done")
+  return
+}
+
+; ~MButton::
+	MouseGetPos, ClickX, ClickY, win_id
+	if (InTitleBar()) {
+		SwapMon(win_id)
+	}
+return
+
+SwapMon(WinID) ; Swaps window with an ID of WinID onto the other monitor
+{
+  SysGet, Mon1, Monitor, 1
+  Mon1Width := Mon1Right - Mon1Left
+  Mon1Height := Mon1Bottom - Mon1Top
+
+  SysGet, Mon2, Monitor, 2
+  Mon2Width := Mon2Right - Mon2Left
+  Mon2Height := Mon2Bottom - Mon2Top
+
+  WinGetPos, WinX, WinY, WinWidth, WinHeight, ahk_id %WinID%
+  WinCenterX := WinX + (WinWidth / 2)
+  WinCenterY := WinY + (WinHeight / 2)
+  if (WinCenterX >= Mon1Left and WinCenterX <= Mon1Right and WinCenterY >= Mon1Top and WinCenterY <= Mon1Bottom) {
+    NewX := (WinX - Mon1Left) / Mon1Width
+    NewX := Mon2Left + (Mon2Width * NewX)
+
+    NewWidth := WinWidth / Mon1Width
+    NewWidth := Mon2Width * NewWidth
+
+    NewY := (WinY - Mon1Top) / Mon1Height
+    NewY := Mon2Top + (Mon2Height * NewY)
+
+    NewHeight := WinHeight / Mon1Height
+    NewHeight := Mon2Height * NewHeight
+  } else {
+    NewX := (WinX - Mon2Left) / Mon2Width
+    NewX := Mon1Left + (Mon1Width * NewX)
+
+    NewWidth := WinWidth / Mon2Width
+    NewWidth := Mon1Width * NewWidth
+
+    NewY := (WinY - Mon2Top) / Mon2Height
+    NewY := Mon1Top + (Mon1Height * NewY)
+
+    NewHeight := WinHeight / Mon2Height
+    NewHeight := Mon1Height * NewHeight
+  }
+
+  WinMove, ahk_id %WinID%, , %NewX%, %NewY%, %NewWidth%, %NewHeight%
+  return
 }

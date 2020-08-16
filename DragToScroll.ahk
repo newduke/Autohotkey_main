@@ -350,7 +350,11 @@ Return
 
 ; Hotkey Handler for button down
 ;
+; #If (!WinActive("StarCraft II"))
 ButtonDown:
+If (WinActive("StarCraft II")) {
+  goto DisabledButtonDown
+}
 Critical
 ; Critical forces a hotkey handler thread to be attended to handling any others.
 ; If not, a rapid click could cause the Button-Up event to be processed
@@ -420,6 +424,9 @@ Return
 ; Hotkey Handler for button up
 ;
 ButtonUp:
+If (WinActive("StarCraft II")) {
+  goto DisabledButtonUp
+}
   Log("ButtonUp: " QuotedVar("DragStatus") QuotedVar("Mileage"))
   if (DragStatus = DS_DRAGGING && !Mileage) {
     DragStatus := DS_NEW
@@ -467,6 +474,7 @@ ButtonUp:
   ; and cleans up any drag that may have started.
   GoSub, DragStop
 Return
+; #If
 
 DisabledButtonDown:
   Send, {%Button% Down}

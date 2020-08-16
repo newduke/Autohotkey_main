@@ -12,6 +12,7 @@
 ; ::1550::1550 5th St, Oakland, CA 94607
 :*:285*::2853 Sacrament St, Berkeley, CA 94702
 :*:947*::9471 La Jolla Shores Dr, La Jolla, CA 92037
+:*:92*::92037
 :*:206*::206-289-0213
 :*:hihii::
 	SendInput, Hi hi. Finesse (reverse, bluff) ok with everyone?

@@ -158,7 +158,7 @@ GestureKeyless:
     {
         ; Logic below requires that only keyless mode enables 'Critical'.
         if (A_ThisLabel="GestureKeyless" && m_wasCritical := A_IsCritical)
-                Critical Off ; Allow interruption temporarily.
+            Critical Off ; Allow interruption temporarily.
         
         ; wait for mouse to move
         Sleep, m_Interval
