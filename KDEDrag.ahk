@@ -64,11 +64,13 @@ If DoubleAlt
 ; Get the initial mouse position and window id, and
 ; abort if the window is maximized.
 MouseGetPos,KDE_X1,KDE_Y1,KDE_id
+RestoreWin(KDE_id)
 WinGet,KDE_Win,MinMax,ahk_id %KDE_id%
 If KDE_Win
 	return
 ; Get the initial window position.
 WinGetPos,KDE_WinX1,KDE_WinY1,,,ahk_id %KDE_id%
+
 Loop
 {
 	GetKeyState,KDE_Button,LButton,P ; Break if LButton has been released.
@@ -86,7 +88,7 @@ ToolTip
 return
 
 Alt & RButton::
-If DoubleAlt
+If (DoubleAlt || WinActive("Chess.com - "))
 {
 	MouseGetPos,,,KDE_id
 	; Toggle between maximized and restored state.
@@ -101,6 +103,7 @@ If DoubleAlt
 ; Get the initial mouse position and window id, and
 ; abort if the window is maximized.
 MouseGetPos,KDE_X1,KDE_Y1,KDE_id
+RestoreWin(KDE_id)
 WinGet,KDE_Win,MinMax,ahk_id %KDE_id%
 If KDE_Win
 	return
@@ -169,15 +172,25 @@ Loop
 		KDE_WinX2 := MonitorRight
 		KDE_WinY1 := MonitorTop
 		KDE_WinY2 := MonitorBottom
-		CenterX := KDE_WinX1 + (KDE_WinX2 - KDE_WinX1)*.5
-		CenterY := KDE_WinY1 + (KDE_WinY2 - KDE_WinY1)*.5
+		MonitorHeight := MonitorBottom - MonitorTop
+		MonitorWidth := MonitorRight - MonitorLeft
+		CenterX := KDE_WinX1 + MonitorWidth*.5
+		CenterY := KDE_WinY1 + MonitorHeight*.5
 		Sensitivity := 50
-		if (KDE_X2 > Sensitivity) {
+		if (KDE_X2 < -2*Sensitivity) {
+		} else if (KDE_X2 > 2*Sensitivity) {
+			KDE_WinX1 := CenterX - MonitorWidth / 4
+			KDE_WinX2 := CenterX + MonitorWidth / 4
+		} else if (KDE_X2 > Sensitivity) {
 			KDE_WinX1 := CenterX
 		} else if (KDE_X2 < -Sensitivity) {
 			KDE_WinX2 := CenterX
 		}
-		if (KDE_Y2 > Sensitivity) {
+		if (KDE_Y2 < -2*Sensitivity) {
+		} else if (KDE_Y2 > 2*Sensitivity) {
+			KDE_WinY1 := CenterY - MonitorHeight / 4
+			KDE_WinY2 := CenterY + MonitorHeight / 4
+		} else if (KDE_Y2 > Sensitivity) {
 			KDE_WinY1 := CenterY
 		} else if (KDE_Y2 < -Sensitivity) {
 			KDE_WinY2 := CenterY
@@ -243,6 +256,14 @@ return
 	MouseGetPos,,,KDE_id
 	WinSet,AlwaysOnTop ,Toggle ,ahk_id %KDE_id%
 	WinSet,AlwaysOnTop ,Toggle ,ahk_id %KDE_id%
+	WinActivate, ahk_id %KDE_id%
 	KeyWait,Alt,U T20 ; ... and the next press.
 	DoubleAlt := False ; reset DoubleAlt when Alt is release (or times out)
 return
+
+RestoreWin(KDE_id) {
+	WinGet,KDE_Win,MinMax,ahk_id %KDE_id%
+	If (KDE_Win) {
+		WinRestore,ahk_id %KDE_id%
+	}
+}

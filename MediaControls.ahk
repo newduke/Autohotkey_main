@@ -65,6 +65,30 @@ Send, {Media_Next}
 ;Send, ^{RIGHT}
 return
 
+^#z::
+	; temporary sound boost
+	; global old_volume := 0
+	global boost_time := 12000
+	if (old_volume) {
+		SetTimer, Restore_Volume
+		return
+	}
+	SoundGet, vol
+	old_volume := vol
+	new_vol := min(100, vol*2)
+	SoundSet, new_vol
+    ; OSD(Round(new_volume))
+    ; OSD(Round(boost_time))
+	SetTimer, Restore_Volume, -%boost_time%
+	; boost_time
+return
+
+Restore_Volume:
+	SoundSet, old_volume
+    ; OSD(Round(old_volume))
+	old_volume := 0
+return
+
 #z::
 	Send, {Media_Play_Pause}
 	; If WinExist("ahk_class SpotifyMainWindow") or WinExist("ahk_class iTunes")

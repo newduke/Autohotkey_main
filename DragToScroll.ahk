@@ -81,8 +81,8 @@ Setting("MovementThreshold", 0)               ; in px
 ; scroll method
 ; choose one of: mWheelKey, mWheelMessage, mScrollMessage
 ; WheelMessage & WheelKey are preferred; your results may vary
-Setting("ScrollMethodX", mWheelMessage)
-Setting("ScrollMethodY", mWheelMessage )
+Setting("ScrollMethodX", mWheelKey)
+Setting("ScrollMethodY", mWheelKey )
 
 ; invert drag
 ; by default, you "drag" the document; moving up drags the document up,
@@ -348,20 +348,28 @@ Return
 ; Implementation
 ;--------------------------------
 
+; disable for some apps
+ShouldDisable() {
+  return WinActive("StarCraft II") || WinActive("Chess.com - ") || WinActive("ahk_exe quakelive_steam.exe")
+}
 ; Hotkey Handler for button down
 ;
 ; #If (!WinActive("StarCraft II"))
 ButtonDown:
-If (WinActive("StarCraft II")) {
-  goto DisabledButtonDown
-}
-Critical
-; Critical forces a hotkey handler thread to be attended to handling any others.
-; If not, a rapid click could cause the Button-Up event to be processed
-; before Button-Down, thanks to AHK's pseudo-multithreaded handling of hotkeys.
-;
-; Thanks to 'Guest' for an update to these hotkey routines.
-; This update further cleans up, bigfixes, and simplifies the updates.
+  Hotkey, %Button% Up, ButtonUp, On
+  SetTitleMatchMode, 2
+  ; If (WinActive("StarCraft II") || WinActive("Chess.com - ")) {
+  If (ShouldDisable()) {
+    goto DisabledButtonDown
+  }
+
+  Critical
+  ; Critical forces a hotkey handler thread to be attended to handling any others.
+  ; If not, a rapid click could cause the Button-Up event to be processed
+  ; before Button-Down, thanks to AHK's pseudo-multithreaded handling of hotkeys.
+  ;
+  ; Thanks to 'Guest' for an update to these hotkey routines.
+  ; This update further cleans up, bigfixes, and simplifies the updates.
 
    ; Initialize DragStatus, indicating a new click
    DragStatus := DS_NEW
@@ -424,9 +432,23 @@ Return
 ; Hotkey Handler for button up
 ;
 ButtonUp:
-If (WinActive("StarCraft II")) {
-  goto DisabledButtonUp
-}
+  ; update icons & cursor
+  ; done before handling momentum since we've already released the button
+  GoSub UpdateTrayIcon
+  if (ChangeMouseCursor)
+  {
+    RestoreSystemCursor()
+    if (ChangedCursorStyle = "cursorScrollPointer")
+      Gui, 98: Hide
+  }
+
+  SetTitleMatchMode, 2
+  If (ShouldDisable()) {
+  ; If (WinActive("StarCraft II") || WinActive("Chess.com - ")) {
+    goto DisabledButtonUp
+  }
+
+  Hotkey, %Button% Up, ButtonUp, Off
   Log("ButtonUp: " QuotedVar("DragStatus") QuotedVar("Mileage"))
   if (DragStatus = DS_DRAGGING && !Mileage) {
     DragStatus := DS_NEW
@@ -454,16 +476,6 @@ If (WinActive("StarCraft II")) {
   ; Skip dragging, and treat like a normal click.
   if (DragStatus == DS_NEW)
     GoSub, DragSkip
-
-  ; update icons & cursor
-  ; done before handling momentum since we've already released the button
-  GoSub UpdateTrayIcon
-  if (ChangeMouseCursor)
-  {
-    RestoreSystemCursor()
-    if (ChangedCursorStyle = "cursorScrollPointer")
-      Gui, 98: Hide
-  }
 
   ; check for and apply momentum
   if (DragStatus == DS_DRAGGING)
@@ -521,7 +533,8 @@ DragStart:
         ;// "hide" cursor by replacing it with blank cursor (from the AHK help file for DllCall command)
         VarSetCapacity(AndMask, 32*4, 0xFF)
         VarSetCapacity(XorMask, 32*4, 0)
-        SetSystemCursor(DllCall("CreateCursor", "uint", 0, "int", 0, "int", 0, "int", 32, "int", 32, "uint", &AndMask, "uint", &XorMask))
+        ; SetSystemCursor(DllCall("CreateCursor", "uint", 0, "int", 0, "int", 0, "int", 32, "int", 32, "uint", &AndMask, "uint", &XorMask))
+        SetSystemCursor(hIconDragging)
       } 
       else
         SetSystemCursor(hIconDragging)
@@ -749,11 +762,16 @@ Scroll(arg, horizontal="", format="px")
     else
       Factor *= Get("SpeedX") * X_ADJUST
   
-    ; Scale by the acceleration function, if enabled
-    if (!horizontal && Get("UseAccelerationY"))
-      Factor := Accelerate(Factor)
-    if (horizontal && Get("UseAccelerationX"))
-      Factor := Accelerate(Factor)
+    if (WinActive("Pics @")) {
+      Factor := Factor * .2
+    } else {
+
+      ; Scale by the acceleration function, if enabled
+      if (!horizontal && Get("UseAccelerationY"))
+        Factor := Accelerate(Factor)
+      if (horizontal && Get("UseAccelerationX"))
+        Factor := Accelerate(Factor)
+    }
   }
 
   ;if (!horizontal) ToolTip, Speed: %arg% -> %Factor%
@@ -1446,6 +1464,10 @@ Return
 ; Each handler either sets, or toggles the associated property
 ;
 
+tmpUp:
+  Hotkey, %Button% Up, ButtonUp, (ScrollDisabled ? "Off" : "On")
+return
+
 mnuEnabled:
   ScrollDisabled := !ScrollDisabled
   ToolTip("Scrolling " . (ScrollDisabled ? "Disabled" : "Enabled"), 1)
@@ -1456,9 +1478,9 @@ mnuEnabled:
     Menu, TRAY, Check, Enabled
     Menu, TRAY, tip, Drag To Scroll v%VERSION%
     HotKey, %Button%, ButtonDown, On
-    HotKey, %Button% Up, ButtonUp, On
-    HotKey, ^%Button%, DisabledButtonDown, On
-    HotKey, ^%Button% Up, DisabledButtonUp, On
+    HotKey, %Button% Up, ButtonUp, Off
+    ; HotKey, ^%Button%, DisabledButtonDown, On
+    ; HotKey, ^%Button% Up, DisabledButtonUp, On
     HotKey, ~LButton, ToolTipCancel, On
   }
   else
@@ -1467,8 +1489,8 @@ mnuEnabled:
     Menu, TRAY, tip, Drag To Scroll v%VERSION% (Disabled)
     HotKey, %Button%, Off
     HotKey, %Button% Up, Off
-    HotKey, ^%Button%, Off
-    HotKey, ^%Button% Up, Off
+    ; HotKey, ^%Button%, Off
+    ; HotKey, ^%Button% Up, Off
   }
    
   Gosub, UpdateTrayIcon

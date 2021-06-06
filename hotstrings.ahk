@@ -10,10 +10,11 @@
 :*:new@::newduke@gmail.com
 ; ::1184::1184 Florida Street, San Francisco, CA 94110
 ; ::1550::1550 5th St, Oakland, CA 94607
-:*:285*::2853 Sacrament St, Berkeley, CA 94702
-:*:947*::9471 La Jolla Shores Dr, La Jolla, CA 92037
+; :*:285*::2853 Sacrament St, Berkeley, CA 94702
+:*:94*::9471 La Jolla Shores Dr, La Jolla, CA 92037
 :*:92*::92037
 :*:206*::206-289-0213
+:*:lvlll::Hyphenated level?
 :*:hihii::
 	SendInput, Hi hi. Finesse (reverse, bluff) ok with everyone?
 return

@@ -14,7 +14,7 @@
 ; #include ArrowKeyS.ahk
 ; #include VimKey.ahk
 #Include GesturesS.ahk
-; #Include logging.ahk
+#Include logging.ahk
 global shiftState := ""
 
 SetWinDelay,2
@@ -74,7 +74,9 @@ return
 
 ; Run once at startup, handle configuration, etc.  -------------------------
 ScriptStartup:
-	; LogInitGUI(,1)
+	if (DebugLevel) {
+		LogInitGUI(, DebugLevel - 1)
+	}
 	VimSetup()
 	; MakeChord("Enter", "a", "OpenWorkflowy")
 	; MakeChord("Enter", "t", "OpenHangouts")
@@ -236,42 +238,23 @@ return
 ; #t::RunRestoreHideApp("Hangouts", "")
 +#t::
 #t::
-OpenHangouts:
-	global chromeExe
+OpenMessages:
+	global browserExe
 	keyHeld := GetKeyState("shift")
 	if (keyHeld) {
-		OpenBrowserTab("Messenger", "Messenger |")
+		OpenBrowserTab("Mess|Facebook", "Messenger")
 		return
 	}
 
-	windowName := "Hangouts"
-	If (WinActive(windowName)) {
-		WinMinimize
-		return
-	} else if (WinExist(windowName)) {
-		WinActivate
-		return
-	} else {
-		Run, %chromeExe%
-	}
+	OpenBrowserTab("Messages", "Messages")
 return
 
-OpenWorkflowy:
-#a::
-	OpenBrowserTab("WorkFlowy")
-return
-	
-OpenToggl:
-#q::
-	act := RunRestoreMinApp("- Toggl Desktop", "C:\Users\Jordan\AppData\Local\TogglDesktop\TogglDesktop.exe")
-return
-	
-OpenYoutube:
-#y::
-	OpenBrowserTab("youtube",,0)
-return
-	
-#s::RunRestoreHideApp("ahk_class ENMainFrame","C:\Program Files (x86)\Evernote\Evernote\evernote.exe")
+#IfWinActive, WorkFlowy
+^s::Send,^k
+^+Enter::Send,+{Enter 2}{Enter}
+#If
+
+#s::RunRestoreHideApp("ahk_class ENMainFrame","C:\Users\Jordan\AppData\Local\Programs\Evernote\Evernote.exe")
 
 ^#e::
 #e::
@@ -285,25 +268,29 @@ return
 
 OpenBrowserTab(tabName, windowName:="", launch:=1) {
 	windowName := windowName ? windowName : tabName . " - "
+	if (!tabName) windowName := ""
 	SetTitleMatchMode, 2
 	; OSD(A_DDD . " " . A_DD . " " . A_MMMM . " " . A_YYYY . "  " . A_Hour . ":" . A_Min, 2000)
-	If (WinActive(windowName)) {
+	If (windowName && WinActive(windowName)) {
 		WinMinimize
 		return
-	} else if (WinExist(windowName)) {
+	} else if (windowName && WinExist(windowName)) {
 		WinActivate
 		return
 	}
 	OpenBrowser(1, 1)
 	SendInput, {ShiftUp}
-	WinWaitActive, "ahk_exe brave.exe",, .1
-	Suspend, on
+	WinWaitActive, %browserExe%,, .1
 	Send, !q
 	Sleep, 200
-	Log(tabName)
+	Log("Open tab: " tabName)
+	if (!tabName) 
+		return
+
+	Suspend, on
 	SendRaw, %tabName%
-	Sleep, 300
 	if (launch) {
+		Sleep, 300
 		Send, {Enter}
 	}
 	Suspend, off
@@ -313,14 +300,17 @@ OpenBrowserTab(tabName, windowName:="", launch:=1) {
 OpenBrowser(waitActive:=0, noCycle:=0) {
 	; TODO: Only select real brave windows
 	; GroupAdd, Browser, ahk_exe chrome.exe,,,,Hangouts
-	GroupAdd, Browser, ahk_exe brave.exe,,,,Hangouts
+	GroupAdd, Browser, %browserExe%,,,Hangouts,Hangouts
 	; RunCycleApp("Browser", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "ctrl")
-	if (!noCycle || !WinActive("ahk_exe brave.exe")) {
+	if (!noCycle || !WinActive(browserExe) || WinActive("Hangouts")) {
 		; OSD(browserLocation)
 		action := RunCycleApp("Browser", browserLocation, "ctrl")
 	}
+	While (noCycle && WinActive("Hangouts")) {
+		Sleep, 50
+	}
 	if (waitActive) {
-		WinWaitActive, ahk_exe brave.exe,, .5
+		WinWaitActive, %browserExe%,, .5
 	}
 	return action
 }
@@ -345,7 +335,7 @@ return
 
 ; paste key stuff (to circumvent fields without paste, this just stuffs the keys)
 ;TODO: turn \r\n's into \r's
-; LWin & p::
+LWin & p::
 ~ RWin & o::
 	SetKeyDelay, -1 ;100
 	StringReplace, clip, clipboard, `r`n, `r, All
@@ -517,8 +507,19 @@ return
     WinMove, A,,0,0,500,500
 return
 
+^!+2::
+	MouseGetPos,KDE_X1,KDE_Y1,KDE_id
+
+	LoopWindows("ahk_exe Zoom.exe", "IsMappedWindow", "SaveWinCoords")
+return	
+
+^!2::
+	LoopWindows("ahk_exe Zoom.exe", "IsMappedWindow", "LoadWinCoords")
+return	
+
+
 LoopWindows(title, filter:=0, action:=0) {
-	WinGet, win_list, List, ahk_exe Zoom.exe 
+	WinGet, win_list, List, %title%
 	Loop, %win_list%
 	{
 		this_id := win_list%A_Index%
@@ -537,7 +538,7 @@ LoopWindows(title, filter:=0, action:=0) {
 
 
 ; Set this key combination to whatever.
-+#s::
+^+#s::
 SwapAll:
 {
   SetWinDelay, 0 ; This switching should be instant
@@ -581,45 +582,46 @@ SwapAll:
 	}
 return
 
-SwapMon(WinID) ; Swaps window with an ID of WinID onto the other monitor
+SwapMon(WinID, scaling:=1) ; Swaps window with an ID of WinID onto the other monitor
 {
-  SysGet, Mon1, Monitor, 1
-  Mon1Width := Mon1Right - Mon1Left
-  Mon1Height := Mon1Bottom - Mon1Top
+	WinGet, IsMin, MinMax, ahk_id %WinID% ; The window will re-locate even if it's minimized
 
-  SysGet, Mon2, Monitor, 2
-  Mon2Width := Mon2Right - Mon2Left
-  Mon2Height := Mon2Bottom - Mon2Top
+	SysGet, Mon1, Monitor, 1
+	Mon1Width := Mon1Right - Mon1Left
+	Mon1Height := Mon1Bottom - Mon1Top
 
-  WinGetPos, WinX, WinY, WinWidth, WinHeight, ahk_id %WinID%
-  WinCenterX := WinX + (WinWidth / 2)
-  WinCenterY := WinY + (WinHeight / 2)
-  if (WinCenterX >= Mon1Left and WinCenterX <= Mon1Right and WinCenterY >= Mon1Top and WinCenterY <= Mon1Bottom) {
-    NewX := (WinX - Mon1Left) / Mon1Width
-    NewX := Mon2Left + (Mon2Width * NewX)
+	SysGet, Mon2, Monitor, 2
+	Mon2Width := Mon2Right - Mon2Left
+	Mon2Height := Mon2Bottom - Mon2Top
 
-    NewWidth := WinWidth / Mon1Width
-    NewWidth := Mon2Width * NewWidth
+	WinGetPos, WinX, WinY, WinWidth, WinHeight, ahk_id %WinID%
+	WinCenterX := WinX + (WinWidth / 2)
+	WinCenterY := WinY + (WinHeight / 2)
+	NewWidth := WinWidth 
+	NewHeight:= WinHeight
 
-    NewY := (WinY - Mon1Top) / Mon1Height
-    NewY := Mon2Top + (Mon2Height * NewY)
-
-    NewHeight := WinHeight / Mon1Height
-    NewHeight := Mon2Height * NewHeight
-  } else {
-    NewX := (WinX - Mon2Left) / Mon2Width
-    NewX := Mon1Left + (Mon1Width * NewX)
-
-    NewWidth := WinWidth / Mon2Width
-    NewWidth := Mon1Width * NewWidth
-
-    NewY := (WinY - Mon2Top) / Mon2Height
-    NewY := Mon1Top + (Mon1Height * NewY)
-
-    NewHeight := WinHeight / Mon2Height
-    NewHeight := Mon1Height * NewHeight
-  }
-
-  WinMove, ahk_id %WinID%, , %NewX%, %NewY%, %NewWidth%, %NewHeight%
-  return
+	if (WinCenterX >= Mon1Left and WinCenterX <= Mon1Right and WinCenterY >= Mon1Top and WinCenterY <= Mon1Bottom) {
+		Src := 1
+		Dest := 2
+	} else {
+		Src := 2
+		Dest := 1
+	}
+	for i, subvar in ["Left", "Right", "Top", "Bottom", "Width", "Height"] {
+		Dest%subvar% := Mon%Dest%%subvar%
+		Src%subvar% := Mon%Src%%subvar%
+	}
+	if (IsMin = 1) {
+		NewWidth := DestWidth
+		NewHeight := DestHeight
+	} else if (scaling) {
+		NewWidth *= DestWidth / SrcWidth
+		NewHeight *= DestHeight / SrcHeight
+	}
+	NewX := (WinX - SrcLeft) / SrcWidth
+	NewX := DestLeft + (DestWidth * NewX)
+	NewY := (WinY - SrcTop) / SrcHeight
+	NewY := DestTop + (DestHeight * NewY)
+	WinMove, ahk_id %WinID%, , %NewX%, %NewY%, %NewWidth%, %NewHeight%
+	return
 }

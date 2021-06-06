@@ -2,13 +2,15 @@
 
 defaulLogFile := "log.txt"
 global Console
+global logLevel
 
-LogInitGUI(title:="Logger", visible:=0) {   
+LogInitGUI(title:="Logger", _logLevel:=0) {   
+    logLevel := _logLevel
     Gui, LogGUI:New
     ; Gui LogGUI:+AlwaysOnTop ; I wanted this to stay on top even though there are other windows opening and being moved around.
     Gui, LogGUI:Add, Edit, x10 y10 w600 h600 vConsole
-    Gui, LogGUI:Show, x2100 y100 w620 h620, %title% - AutoHotkey
-    if (!visible) {
+    Gui, LogGUI:Show, x100 y100 w620 h620, %title% - AutoHotkey
+    if (!logLevel) {
         Gui, LogGUI:Minimize 
     }
 }
@@ -25,6 +27,9 @@ Log(msg, fileName:="") {
     ; Gui, LogGUI:Flash
     GuiControlGet, Console, LogGUI:
     GuiControl, LogGUI:, Console, %msg%`r`n%Console%
+    if (logLevel >= 2) {
+        OSD(msg)
+    }
     ; GUI write
     ; sleep 3000 ; Pause for smooth log scrolling
 }

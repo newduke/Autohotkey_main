@@ -51,8 +51,12 @@ return
 	Send {RControl Down}
     ; if (GetKeyState("Shift")) {
     if (EnterDown) {
-        ChangeMode("vim")
-        enterVimMode := 1
+        if (vimMode = "vim") {
+            EnterDown := 0
+        } else {
+            ChangeMode("vim")
+            enterVimMode := 1
+        }
     } else if (waitForEnter) {
         ChangeMode(waitForEnter)
         waitForEnter := vimMode
@@ -133,13 +137,42 @@ ChangeMode(newMode) {
 ~enter::
 ChangeMode(waitForEnter)
 return
+#If
+OpenWorkflowy:
+#a::
+    ; If(!WinActive("ahk_exe brave.exe"))
+
+	SetTitleMatchMode, 2
+    if (!WinActive("WorkFlowy")) {
+        ; OpenBrowser(1, 1)
+	    OpenBrowserTab("WorkFlowy")
+        ; Sleep, 200
+        ; return
+    }
+    ; Sleep, 100
+    SendInput, !w
+return
+	
+; OpenToggl:
+; #q::
+; 	act := RunRestoreMinApp("- Toggl Desktop", "C:\Users\Jordan\AppData\Local\TogglDesktop\TogglDesktop.exe")
+; return
+OpenAnyTab:
+#q::
+	OpenBrowserTab("",,0)
+return
+	
+OpenYoutube:
+#y::
+	OpenBrowserTab("youtube",,0)
+return
 
 #if Enterdown
 a::goto OpenWorkflowy
-q::goto OpenToggl
+q::goto OpenAnyTab
 y::goto OpenYoutube
-t::goto OpenHangouts
-+t::goto OpenHangouts
+t::goto OpenMessages
++t::goto OpenMessages
 
 #If vimMode = "vim" || vimMode = "visual"
 0::
@@ -349,10 +382,10 @@ RapidFire(long, short, key, ByRef mutex, action, extraArgs*) {
 	mutex := 0
 }
 KeyStates:
-	shiftState := GetKeyState("Shift")
-	ctrlState := GetKeyState("Ctrl")
-	altState := GetKeyState("Alt")
-	winState := GetKeyState("LWin")
+	shiftState := GetKeyState("Shift", "P")
+	ctrlState := GetKeyState("Ctrl", "P")
+	altState := GetKeyState("Alt", "P")
+	winState := GetKeyState("LWin", "P")
 	capState := GetKeyState("CapsLock", "P")
 	; fall through
 ; from key states, concat the corresponding AHK modifiers, + ^ !,
