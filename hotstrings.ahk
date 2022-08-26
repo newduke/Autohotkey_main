@@ -14,9 +14,12 @@
 :*:94*::9471 La Jolla Shores Dr, La Jolla, CA 92037
 :*:92*::92037
 :*:206*::206-289-0213
-:*:lvlll::Hyphenated level?
+:*:lvlll::H-group level?
+::;;;::{U+2234}
+::==>::{U+27f9}
+
 :*:hihii::
-	SendInput, Hi hi. Finesse (reverse, bluff) ok with everyone?
+	SendInput, Hi hi. Finesse (reverse, bluff, long) ok with everyone?
 return
 ::jauth::author: Jordan Weitz (newduke@gmail.com)
 ::cliche::clich� 

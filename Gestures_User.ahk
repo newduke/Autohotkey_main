@@ -211,6 +211,7 @@ Gesture_RButton:
         sendKeys("k")
     } else if (m_gesture = "_R") {
         gosub WinSwapMon
+        
         return
     } else if (WinActive("ahk_class MozillaWindowClass")) {
         Send,!b
@@ -231,10 +232,10 @@ Gesture_RButton:
 return
 
 WinSwapMon:
-    OSD("swap mon")
+    ; OSD("swap mon")
 	MouseGetPos, ClickX, ClickY, win_id
 	; if (InTitleBar()) {
-		SwapMon(win_id, 0)
+		SwapMon(win_id, 0, 1)
 	; }
 return
 
@@ -257,12 +258,15 @@ Gesture_MButton:
 return
 
 Gesture_LButton:
-    if m_gesture = _U
-    {
+    ; ; OSD(m_gesture)
+    if (m_gesture = "_U") {
         gosub ActivateMedia
         return
+    } else if (m_gesture = "_D") {
+        gosub toggle_mic
+    } else {
+        gosub PasteSpecial
     }
-    gosub PasteSpecial
 return
 
 ; Jump to previous window
@@ -345,7 +349,7 @@ Gesture_WheelUp:
             ; sendKeys("{" (up ? "left" : "right") " " mult "}")            
         } else if (WinExist("Hanab Live ahk_id " id) || WinExist("- YouTube - ahk_id " id) || WinExist("ahk_exe vlc.exe ahk_id " id) 
                    || WinExist("Netflix - ahk_id " id) || WinExist("- Chess.com ahk_id " id) || WinExist("ichess ahk_id " id)
-                   || WinExist("ahk_class MozillaWindowClass ahk_id " id)) {
+                   || WinExist("Hulu | Watch - ahk_id " id) || WinExist("ahk_class MozillaWindowClass ahk_id " id)) {
         ; } else if (WinActive("Hanab Live") || WinActive("- YouTube -") || WinActive("ahk_exe vlc.exe") 
         ;            || WinActive("Netflix -") || WinActive("- Chess.com") || WinActive("ichess")
         ;            || WinActive("ahk_class MozillaWindowClass")) {

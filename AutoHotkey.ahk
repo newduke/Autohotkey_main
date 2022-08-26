@@ -16,6 +16,7 @@
 #Include GesturesS.ahk
 #Include logging.ahk
 global shiftState := ""
+global f13_down := 1
 
 SetWinDelay,2
 CoordMode,Mouse
@@ -172,12 +173,59 @@ ToggleUpAsShift:
 	Hotkey, *rshift up, toggle
 return
 
+toggle_mic:
+^!f1::
+	if (f13_down) {
+		SetTimer, f13_up, -100
+	} else {
+		gosub f_13_down
+	}
+return
+
+f_13_down:
+!`::
+	send, {f13 down}
+	OSD("Mic --ON--", 99999999)
+	f13_down := 1
+return
+
+f13_up:
+!` UP::
+	OSD("Mic --OFF--")
+	send, {f13 up}
+	f13_down := 0
+return
+
 Beeep() {
 	SoundPlay, *48
 }
 
 ; Select the currently focused word
 ^+q::SendInput, {right}{Ctrl Down}{left}+{right}{Ctrl Up}
+
+#If WinActive("Hanab Live")
+global hpeek := 0
+^Space::
+	; Send, {space down}
+	; return
+
+	if (hpeek) {
+		SetTimer, HanabiPeek, Off
+	} else {
+		SetTimer, HanabiPeek, 900
+	}
+	hpeek := !hpeek
+return
+HanabiPeek:
+	If (WinActive("Hanab Live")) {
+		Send, {space down}
+		Sleep, 300
+		If (WinActive("Hanab Live")) {
+			Send, {space up}
+		}
+	}
+return
+#if
 
 ; Set a sleep timer
 ^#!s::
@@ -536,6 +584,10 @@ LoopWindows(title, filter:=0, action:=0) {
 ;
 ; v1.0.1 - xenrik - Updated to use relative screen size when swapping
 
+^#1::
+WarpWin:
+	WinMove, A,, 0,0, 1200, 800
+return
 
 ; Set this key combination to whatever.
 ^+#s::
@@ -582,7 +634,7 @@ SwapAll:
 	}
 return
 
-SwapMon(WinID, scaling:=1) ; Swaps window with an ID of WinID onto the other monitor
+SwapMon(WinID, scaling:=1, center:=0) ; Swaps window with an ID of WinID onto the other monitor
 {
 	WinGet, IsMin, MinMax, ahk_id %WinID% ; The window will re-locate even if it's minimized
 
@@ -600,6 +652,7 @@ SwapMon(WinID, scaling:=1) ; Swaps window with an ID of WinID onto the other mon
 	NewWidth := WinWidth 
 	NewHeight:= WinHeight
 
+	; ToolTipTime(WinCenterX "," Mon1Left ", " Mon1Right ", " WinCenterY ", " Mon1Top ", " Mon1Bottom, 15000)
 	if (WinCenterX >= Mon1Left and WinCenterX <= Mon1Right and WinCenterY >= Mon1Top and WinCenterY <= Mon1Bottom) {
 		Src := 1
 		Dest := 2
@@ -622,6 +675,35 @@ SwapMon(WinID, scaling:=1) ; Swaps window with an ID of WinID onto the other mon
 	NewX := DestLeft + (DestWidth * NewX)
 	NewY := (WinY - SrcTop) / SrcHeight
 	NewY := DestTop + (DestHeight * NewY)
+	; ToolTipTime(Src "," DestLeft ", " Mon1Left ", " Mon2Left ", " NewX ", " NewY ", "  NewWidth ", "  NewHeight, 5000)
+	if (center) {
+		KDE_WinX1 := DestLeft
+		KDE_WinX2 := DestRight
+		KDE_WinY1 := DestTop
+		KDE_WinY2 := DestBottom
+		MonitorHeight := DestBottom - DestTop
+		MonitorWidth := DestRight - DestLeft
+		CenterX := KDE_WinX1 + MonitorWidth*.5
+		CenterY := KDE_WinY1 + MonitorHeight*.5
+
+		if (MonitorWidth < MonitorHeight) {
+			; OSD(QuotedVar("MonitorWidth") QuotedVar("MonitorHeight"))
+			KDE_WinY1 := CenterY - MonitorHeight / 4
+			KDE_WinY2 := CenterY + MonitorHeight / 4
+			KDE_WinX1 := DestLeft
+			KDE_WinX2 := DestRight
+			WinMove,ahk_id %WinID%,,%KDE_WinX1%,%KDE_WinY1%,KDE_WinX2 - KDE_WinX1,(KDE_WinY2 - KDE_WinY1)
+			return
+		}
+	}
+	; OSD(var, 5000)
+	; Sleep, 2000
+	; ToolTipTime(NewX ", " NewY ", "  NewWidth ", "  NewHeight, 5000)
+	; OSD(NewX ":" NewY ":"  NewWidth ": "  NewHeight, 5000)
+	; OSD(NewX . ", " . NewY, 99999)
+	; OSD(NewX . ", " . NewY, 99999)
+	; OSD(%NewX% ", " %NewY% ", " %NewWidth% ", " %NewHeight%, 99999)
+	; OSD(NewY ", " NewX ", "  NewWidth ", "  NewHeight ", " , 99999)
 	WinMove, ahk_id %WinID%, , %NewX%, %NewY%, %NewWidth%, %NewHeight%
 	return
 }
